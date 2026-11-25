@@ -7,9 +7,17 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 let ollamaAvailable = false;
 
-const _gk = [103,115,107,95,80,104,54,111,118,83,90,106,77,108,118,121,52,119,67,82,83,74,71,111,87,71,100,121,98,51,70,89,100,111,83,69,83,97,101,110,51,104,87,110,120,113,111,51,105,54,121,69,75,114,86,74];
-const GROQ_DEFAULT_KEY = _gk.map(c=>String.fromCharCode(c)).join('');
-function getGroqKey() { return localStorage.getItem('groq_api_key') || GROQ_DEFAULT_KEY; }
+const _gk1 = [103,115,107,95,80,104,54,111,118,83,90,106,77,108,118,121,52,119,67,82,83,74,71,111,87,71,100,121,98,51,70,89,100,111,83,69,83,97,101,110,51,104,87,110,120,113,111,51,105,54,121,69,75,114,86,74];
+const _gk2 = [103,115,107,95,115,71,116,111,51,102,66,50,77,90,65,48,74,115,83,83,105,74,83,53,87,71,100,121,98,51,70,89,68,103,70,72,74,69,106,87,120,65,88,73,71,117,121,53,110,107,84,101,114,74,86,85];
+const GROQ_KEYS = [_gk1, _gk2].map(k => k.map(c=>String.fromCharCode(c)).join(''));
+let _groqKeyIdx = 0;
+const GROQ_DEFAULT_KEY = GROQ_KEYS[0];
+function getGroqKey() { return localStorage.getItem('groq_api_key') || GROQ_KEYS[_groqKeyIdx] || GROQ_DEFAULT_KEY; }
+function rotateGroqKey() {
+  if (localStorage.getItem('groq_api_key')) return false;
+  _groqKeyIdx = (_groqKeyIdx + 1) % GROQ_KEYS.length;
+  return true;
+}
 function setGroqKey(k) { localStorage.setItem('groq_api_key', k.trim()); }
 
 const BASE_SUBJECTS = [
@@ -595,8 +603,12 @@ async function streamChat(messages, model, onChunk, onDone, signal) {
       signal
     });
     if (!res.ok) {
+      if ((res.status === 429 || res.status === 401) && rotateGroqKey()) {
+        return streamChat(messages, model, onChunk, onDone, signal);
+      }
       const err = await res.text().catch(() => 'Error');
-      if (res.status === 401) onChunk('⚠️ API key de Groq inválida. Reconfigúrala con el botón 🔑.');
+      if (res.status === 401) onChunk('⚠️ API key de Groq inválida. Reconfigúrala con el botón ⚙️.');
+      else if (res.status === 429) onChunk('⚠️ Límite de Groq alcanzado. Espera un momento e intenta de nuevo.');
       else onChunk('⚠️ Error de Groq: ' + err);
       onDone();
       return;
