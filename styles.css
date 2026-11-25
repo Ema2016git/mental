@@ -328,7 +328,30 @@ body {
   transition: background 0.3s;
 }
 .ai-status-dot.online { background: #2ed573; box-shadow: 0 0 8px rgba(46,213,115,0.5); }
-.ai-status-text { color: var(--dark-text2); font-size: 0.8rem; }
+.ai-status-dot.offline { background: #ff4757; animation: pulseOffline 1.5s ease infinite; }
+@keyframes pulseOffline { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.ai-status-text { color: var(--dark-text2); font-size: 0.8rem; cursor: help; }
+.ai-status-dot.offline + .ai-status-text { color: #ff6b81; }
+
+.ollama-banner {
+  background: linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 100%);
+  border: 1px solid #ff4757;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  animation: bannerSlideIn 0.4s ease;
+}
+@keyframes bannerSlideIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+.ollama-banner-icon { font-size: 1.5rem; }
+.ollama-banner-text { flex:1; }
+.ollama-banner-text h4 { color: #ff6b81; margin:0 0 4px; font-size: 0.9rem; }
+.ollama-banner-text p { color: #aaa; margin:0; font-size: 0.78rem; line-height: 1.4; }
+.ollama-banner-text code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; color: #ffd93d; font-size: 0.75rem; }
+.ollama-banner .btn-retry { background: #ff4757; color: #fff; border: none; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 0.78rem; margin-top: 8px; transition: all 0.2s; }
+.ollama-banner .btn-retry:hover { background: #ff6b81; transform: scale(1.05); }
 
 .ai-topbar-right { display: flex; align-items: center; gap: 10px; }
 

@@ -448,9 +448,49 @@ async function aiCheckStatus() {
   const txt = document.getElementById('ai-status-text');
   try {
     const res = await fetch(OLLAMA_URL + '/api/tags', { signal: AbortSignal.timeout(3000) });
-    if (res.ok) { dot.classList.add('online'); txt.textContent = 'Conectado'; }
-    else { dot.classList.remove('online'); txt.textContent = 'Error'; }
-  } catch { dot.classList.remove('online'); txt.textContent = 'Desconectado'; }
+    if (res.ok) {
+      dot.classList.add('online');
+      dot.classList.remove('offline');
+      txt.textContent = 'Conectado';
+      txt.title = '';
+      hideOllamaBanner();
+    } else {
+      dot.classList.remove('online');
+      dot.classList.add('offline');
+      txt.textContent = 'Error de conexión';
+      txt.title = 'Ollama respondió con error';
+    }
+  } catch {
+    dot.classList.remove('online');
+    dot.classList.add('offline');
+    txt.textContent = 'Desconectado — Abre Ollama en tu PC';
+    txt.title = 'Necesitas tener Ollama corriendo en tu computadora (localhost:11434). Ejecuta iniciar.bat o abre Ollama.';
+    showOllamaBanner();
+  }
+}
+
+function showOllamaBanner() {
+  if (document.getElementById('ollama-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'ollama-banner';
+  banner.className = 'ollama-banner';
+  banner.innerHTML = `
+    <span class="ollama-banner-icon">⚠️</span>
+    <div class="ollama-banner-text">
+      <h4>IA Desconectada</h4>
+      <p>Para usar la IA, necesitas <strong>Ollama</strong> corriendo en tu computadora.</p>
+      <p>Abre una terminal y ejecuta: <code>ollama serve</code> o usa <code>iniciar.bat</code></p>
+      <p style="margin-top:4px;font-size:0.7rem;color:#888;">La IA corre local en tu PC — tus datos nunca salen de tu computadora 🔒</p>
+      <button class="btn-retry" onclick="this.textContent='Verificando...';aiCheckStatus();aiLoadModels();setTimeout(()=>{const b=document.getElementById('ollama-banner');if(document.querySelector('.ai-status-dot.online')&&b)b.remove();else if(this)this.textContent='🔄 Reintentar conexión';},3500)">🔄 Reintentar conexión</button>
+    </div>
+  `;
+  const chatArea = document.getElementById('ai-messages');
+  if (chatArea) chatArea.prepend(banner);
+}
+
+function hideOllamaBanner() {
+  const b = document.getElementById('ollama-banner');
+  if (b) b.remove();
 }
 
 async function aiLoadModels() {
