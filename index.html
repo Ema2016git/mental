@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📚 Mi Diario Escolar + IA</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ============ NAVEGACIÓN PRINCIPAL ============ -->
+  <nav id="main-nav">
+    <div class="nav-brand">
+      <span class="nav-logo">📚</span>
+      <span class="nav-title">Mi Diario Escolar</span>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-view="diary" onclick="switchView('diary')">
+        📖 Mi Diario
+      </button>
+      <button class="nav-tab" data-view="ai" onclick="switchView('ai')">
+        🤖 Mi IA
+      </button>
+      <button class="nav-tab" data-view="graph" onclick="switchView('graph')">
+        📊 Gráficos
+      </button>
+      <button class="nav-tab" data-view="exercises" onclick="switchView('exercises')">
+        ✏️ Ejercicios
+      </button>
+    </div>
+  </nav>
+
+  <!-- Barra de usuario (siempre visible debajo del nav) -->
+  <div id="user-bar"></div>
+
+  <!-- ============ VISTA: DIARIO ESCOLAR ============ -->
+  <div id="diary-view" class="view-container">
+
+    <!-- Modal de Login / Registro -->
+    <div id="auth-modal" class="modal hidden">
+      <div class="modal-content">
+        <button class="modal-close" onclick="closeAuthModal()">&times;</button>
+        <div id="auth-tabs">
+          <button class="tab-btn active" onclick="switchAuthTab('login')">Iniciar Sesión</button>
+          <button class="tab-btn" onclick="switchAuthTab('register')">Crear Cuenta</button>
+        </div>
+        <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+          <h2>👋 ¡Bienvenido de vuelta!</h2>
+          <div class="form-group">
+            <label for="login-user">👤 Tu nombre</label>
+            <input type="text" id="login-user" placeholder="Escribe tu nombre..." required>
+          </div>
+          <div class="form-group">
+            <label for="login-pass">🔑 Tu contraseña</label>
+            <input type="password" id="login-pass" placeholder="Tu contraseña secreta..." required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Entrar 🚀</button>
+        </form>
+        <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
+          <h2>🌟 ¡Crea tu cuenta!</h2>
+          <div class="form-group">
+            <label for="reg-name">👤 Tu nombre</label>
+            <input type="text" id="reg-name" placeholder="¿Cómo te llamas?" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-age">🎂 Tu edad</label>
+            <input type="number" id="reg-age" min="5" max="18" placeholder="¿Cuántos años tienes?" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-pass">🔑 Crea una contraseña</label>
+            <input type="password" id="reg-pass" placeholder="Algo que solo tú sepas..." required minlength="4">
+          </div>
+          <div class="form-group">
+            <label for="reg-pass2">🔑 Repite la contraseña</label>
+            <input type="password" id="reg-pass2" placeholder="Repítela aquí..." required minlength="4">
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">¡Crear mi cuenta! 🎉</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal para agregar materia -->
+    <div id="subject-modal" class="modal hidden">
+      <div class="modal-content modal-small">
+        <button class="modal-close" onclick="closeSubjectModal()">&times;</button>
+        <h2>➕ Nueva Materia</h2>
+        <form onsubmit="handleAddSubject(event)">
+          <div class="form-group">
+            <label for="new-subject-name">📖 Nombre de la materia</label>
+            <input type="text" id="new-subject-name" placeholder="Ej: Inglés, Ciencias, Arte..." required>
+          </div>
+          <div class="form-group">
+            <label>🎨 Elige un emoji</label>
+            <div class="emoji-picker" id="emoji-picker">
+              <button type="button" class="emoji-option selected" data-emoji="📗">📗</button>
+              <button type="button" class="emoji-option" data-emoji="🔬">🔬</button>
+              <button type="button" class="emoji-option" data-emoji="🌍">🌍</button>
+              <button type="button" class="emoji-option" data-emoji="🎨">🎨</button>
+              <button type="button" class="emoji-option" data-emoji="🎵">🎵</button>
+              <button type="button" class="emoji-option" data-emoji="💻">💻</button>
+              <button type="button" class="emoji-option" data-emoji="🏃">🏃</button>
+              <button type="button" class="emoji-option" data-emoji="🇬🇧">🇬🇧</button>
+              <button type="button" class="emoji-option" data-emoji="🧪">🧪</button>
+              <button type="button" class="emoji-option" data-emoji="📐">📐</button>
+              <button type="button" class="emoji-option" data-emoji="🌱">🌱</button>
+              <button type="button" class="emoji-option" data-emoji="⭐">⭐</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>🎨 Color</label>
+            <div class="color-picker" id="color-picker">
+              <button type="button" class="color-option selected" data-color="#4CAF50" style="background:#4CAF50"></button>
+              <button type="button" class="color-option" data-color="#2196F3" style="background:#2196F3"></button>
+              <button type="button" class="color-option" data-color="#FF9800" style="background:#FF9800"></button>
+              <button type="button" class="color-option" data-color="#E91E63" style="background:#E91E63"></button>
+              <button type="button" class="color-option" data-color="#9C27B0" style="background:#9C27B0"></button>
+              <button type="button" class="color-option" data-color="#00BCD4" style="background:#00BCD4"></button>
+              <button type="button" class="color-option" data-color="#FF5722" style="background:#FF5722"></button>
+              <button type="button" class="color-option" data-color="#607D8B" style="background:#607D8B"></button>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Agregar Materia ✅</button>
+        </form>
+      </div>
+    </div>
+
+    <main id="diary-main">
+      <section id="welcome-section">
+        <div class="welcome-card">
+          <h2 id="welcome-text">👋 ¡Hola! Bienvenido a tu Diario Escolar</h2>
+          <p id="welcome-sub">Escribe cada día lo que aprendes. ¡Crea una cuenta para agregar más materias!</p>
+        </div>
+      </section>
+      <section id="subjects-grid"></section>
+      <div id="add-subject-area" class="hidden">
+        <button class="btn btn-add-subject" onclick="openSubjectModal()">➕ Agregar Nueva Materia</button>
+      </div>
+      <section id="subject-view" class="hidden">
+        <button class="btn btn-back" onclick="goBack()">← Volver a mis materias</button>
+        <div id="subject-header"></div>
+        <div id="entry-form-area">
+          <h3>✏️ ¿Qué aprendiste hoy?</h3>
+          <form id="entry-form" onsubmit="handleAddEntry(event)">
+            <div class="form-group">
+              <label for="entry-date">📅 Fecha</label>
+              <input type="date" id="entry-date" required>
+            </div>
+            <div class="form-group">
+              <label for="entry-text">📝 Lo que aprendí</label>
+              <textarea id="entry-text" rows="4" placeholder="Hoy aprendí que..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar Entrada 💾</button>
+          </form>
+        </div>
+        <div id="entries-list">
+          <h3>📖 Mis aprendizajes anteriores</h3>
+          <div id="entries-container"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============ VISTA: IA CHAT ============ -->
+  <div id="ai-view" class="view-container hidden">
+
+    <!-- Barra superior del chat IA -->
+    <div id="ai-topbar">
+      <div class="ai-topbar-left">
+        <span class="ai-status-dot" id="ai-status-dot"></span>
+        <span class="ai-topbar-title">Mi IA Local</span>
+        <span class="ai-status-text" id="ai-status-text">Verificando...</span>
+      </div>
+      <div class="ai-topbar-right">
+        <select id="model-select" title="Modelo de IA">
+          <option value="mi-ia">mi-ia (personalizado)</option>
+        </select>
+        <button class="ai-btn-icon" onclick="aiNewChat()" title="Nuevo chat">🗑️ Nuevo chat</button>
+      </div>
+    </div>
+
+    <!-- Área de mensajes -->
+    <div id="ai-chat-area">
+      <div id="ai-messages">
+        <div class="ai-welcome-msg">
+          <div class="ai-welcome-icon">🤖</div>
+          <h2>¡Hola! Soy tu IA Local</h2>
+          <p>Cuéntame qué aprendiste hoy y te haré preguntas para crear una entrada completa en tu diario. También puedo hacerte quizzes, explicarte temas o resumir tus aprendizajes.</p>
+          <div class="ai-suggestions">
+            <button class="ai-suggestion" onclick="aiSendSuggestion(this)">📝 Hoy en clase vimos los volcanes</button>
+            <button class="ai-suggestion" onclick="aiSendSuggestion(this)">🧠 Hazme un quiz de lo que sé</button>
+            <button class="ai-suggestion" onclick="aiSendSuggestion(this)">📖 Resúmeme mis aprendizajes</button>
+            <button class="ai-suggestion" onclick="aiSendSuggestion(this)">💡 Explícame las fracciones</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de entrada -->
+    <div id="ai-input-bar">
+      <div class="ai-input-wrapper">
+        <textarea
+          id="ai-input"
+          placeholder="Escribe tu mensaje..."
+          rows="1"
+          onkeydown="aiHandleKeydown(event)"
+          oninput="aiAutoResize(this)"
+        ></textarea>
+        <button id="ai-send-btn" onclick="aiSendMessage()" title="Enviar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+      <div class="ai-input-hint">
+        Enter para enviar · Shift+Enter para salto de línea · Los datos de tu diario se envían como contexto
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ VISTA: EJERCICIOS ============ -->
+  <div id="exercises-view" class="view-container hidden">
+    <div id="ex-layout">
+
+      <!-- Panel de control -->
+      <div id="ex-controls">
+        <div class="ex-header">
+          <div class="ex-header-icon">🧠</div>
+          <div>
+            <h3>Centro de Ejercicios</h3>
+            <p id="ex-score-text">Puntos: 0</p>
+          </div>
+        </div>
+
+        <div class="ex-section">
+          <label class="ex-label">📖 Materia</label>
+          <select id="ex-subject-select" class="ex-select"></select>
+        </div>
+
+        <div class="ex-section">
+          <label class="ex-label">🎯 Tipo de ejercicio</label>
+          <div class="ex-type-grid">
+            <button class="ex-type-btn active" data-type="mixed" onclick="exSelectType(this)">🎲 Mixto</button>
+            <button class="ex-type-btn" data-type="multiple" onclick="exSelectType(this)">🔘 Opción múltiple</button>
+            <button class="ex-type-btn" data-type="truefalse" onclick="exSelectType(this)">✅ Verdadero/Falso</button>
+            <button class="ex-type-btn" data-type="fill" onclick="exSelectType(this)">✏️ Completar</button>
+          </div>
+        </div>
+
+        <div class="ex-section">
+          <label class="ex-label">📊 Cantidad</label>
+          <div class="ex-amount-row">
+            <button class="ex-amount-btn" data-n="3" onclick="exSelectAmount(this)">3</button>
+            <button class="ex-amount-btn active" data-n="5" onclick="exSelectAmount(this)">5</button>
+            <button class="ex-amount-btn" data-n="10" onclick="exSelectAmount(this)">10</button>
+          </div>
+        </div>
+
+        <button class="ex-generate-btn" onclick="exGenerate()">
+          🚀 Generar Ejercicios
+        </button>
+
+        <!-- Scoreboard -->
+        <div id="ex-scoreboard" class="hidden">
+          <div class="ex-score-card">
+            <div class="ex-score-big" id="ex-score-big">0/0</div>
+            <div class="ex-score-label">Correctas</div>
+            <div class="ex-score-bar-bg">
+              <div class="ex-score-bar-fill" id="ex-score-bar"></div>
+            </div>
+            <div class="ex-score-pct" id="ex-score-pct">0%</div>
+          </div>
+        </div>
+
+        <div id="ex-history" class="ex-section">
+          <label class="ex-label">📜 Historial</label>
+          <div id="ex-history-list"></div>
+        </div>
+      </div>
+
+      <!-- Área de ejercicios -->
+      <div id="ex-area">
+        <div id="ex-placeholder">
+          <div class="ex-ph-icon">✏️</div>
+          <h2>¡Hora de practicar!</h2>
+          <p>Elige una materia y genera ejercicios. La IA creará preguntas basadas en lo que has aprendido en tu diario.</p>
+          <div class="ex-ph-features">
+            <span>🔘 Opción múltiple</span>
+            <span>✅ Verdadero o Falso</span>
+            <span>✏️ Completar la oración</span>
+            <span>🎲 Ejercicios mixtos</span>
+          </div>
+        </div>
+        <div id="ex-loading" class="hidden">
+          <div class="ex-loading-spinner"></div>
+          <p>La IA está creando tus ejercicios...</p>
+        </div>
+        <div id="ex-questions" class="hidden"></div>
+        <div id="ex-results" class="hidden"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ VISTA: GRÁFICOS ============ -->
+  <div id="graph-view" class="view-container hidden">
+
+    <!-- Panel principal de gráficos -->
+    <div id="graph-layout">
+
+      <!-- Sidebar: chat con la IA para gráficos -->
+      <div id="graph-sidebar">
+        <div class="graph-sidebar-header">
+          <div class="graph-neon-icon">📊</div>
+          <div>
+            <h3>IA Gráficos</h3>
+            <p>Dime qué quieres ver</p>
+          </div>
+        </div>
+
+        <div id="graph-chat">
+          <div id="graph-messages">
+            <div class="graph-ai-msg">
+              <span class="graph-ai-avatar">🤖</span>
+              <div class="graph-ai-bubble">
+                ¡Hola! Puedo crear gráficos y dibujar figuras geométricas. Prueba:
+                <div class="graph-quick-btns" style="margin-bottom:8px">
+                  <button onclick="graphSend('Muéstrame mis aprendizajes por materia')">📊 Aprendizajes por materia</button>
+                  <button onclick="graphSend('Gráfico circular de mis entradas')">🥧 Gráfico circular</button>
+                </div>
+                <span style="font-size:0.7rem;color:#3a6a60;display:block;margin:4px 0 2px;">📐 Figuras geométricas:</span>
+                <div class="graph-quick-btns">
+                  <button onclick="graphSend('Dibuja un triángulo rectángulo')">📐 Triángulo rectángulo</button>
+                  <button onclick="graphSend('Dibuja un círculo')">⭕ Círculo</button>
+                  <button onclick="graphSend('Dibuja un rectángulo')">▬ Rectángulo</button>
+                  <button onclick="graphSend('Dibuja un hexágono')">⬡ Hexágono</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="graph-input-area">
+          <textarea id="graph-input" placeholder="Pide un gráfico..." rows="1"
+            onkeydown="graphHandleKey(event)" oninput="aiAutoResize(this)"></textarea>
+          <button id="graph-send-btn" onclick="graphSend()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Canvas de gráficos -->
+      <div id="graph-canvas-area">
+        <div id="graph-topbar">
+          <span id="graph-title">Esperando gráfico...</span>
+          <div class="graph-topbar-actions">
+            <button class="graph-action-btn" onclick="graphDownload()" title="Descargar imagen">💾 Guardar</button>
+            <button class="graph-action-btn" onclick="graphClear()" title="Limpiar">🗑️ Limpiar</button>
+          </div>
+        </div>
+        <div id="graph-canvas-wrapper">
+          <canvas id="graph-canvas" width="800" height="500"></canvas>
+          <div id="graph-placeholder">
+            <div class="graph-placeholder-icon">📊</div>
+            <p>Pide un gráfico a la IA y aparecerá aquí</p>
+            <div class="graph-grid-bg"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
