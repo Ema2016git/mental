@@ -4,7 +4,7 @@
 
 const OLLAMA_URL = 'http://localhost:11434';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODEL = 'openai/gpt-oss-120b';
 let ollamaAvailable = false;
 
 const _gk1 = [103,115,107,95,80,104,54,111,118,83,90,106,77,108,118,121,52,119,67,82,83,74,71,111,87,71,100,121,98,51,70,89,100,111,83,69,83,97,101,110,51,104,87,110,120,113,111,51,105,54,121,69,75,114,86,74];
@@ -576,13 +576,13 @@ async function aiLoadModels() {
       if (m.name === 'mi-ia' || m.name === 'mi-ia:latest') return;
       sel.innerHTML += `<option value="${m.name}">${m.name} (local)</option>`;
     });
-    if (getGroqKey()) sel.innerHTML += `<option value="groq-cloud" ${!ollamaAvailable?'selected':''}>☁️ Llama3 70B (Groq nube)</option>`;
+    if (getGroqKey()) sel.innerHTML += `<option value="groq-cloud" ${!ollamaAvailable?'selected':''}>☁️ GPT-OSS 120B (Groq nube)</option>`;
     if (!sel.options.length) {
-      if (getGroqKey()) sel.innerHTML = '<option value="groq-cloud" selected>☁️ Llama3 70B (Groq nube)</option>';
+      if (getGroqKey()) sel.innerHTML = '<option value="groq-cloud" selected>☁️ GPT-OSS 120B (Groq nube)</option>';
       else sel.innerHTML = '<option value="mi-ia">mi-ia</option>';
     }
   } catch {
-    if (getGroqKey()) sel.innerHTML = '<option value="groq-cloud" selected>☁️ Llama3 70B (Groq nube)</option>';
+    if (getGroqKey()) sel.innerHTML = '<option value="groq-cloud" selected>☁️ GPT-OSS 120B (Groq nube)</option>';
     else sel.innerHTML = '<option value="mi-ia">mi-ia (desconectado)</option>';
   }
 }
