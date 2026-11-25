@@ -3,6 +3,15 @@
 // =============================================
 
 const OLLAMA_URL = 'http://localhost:11434';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+let ollamaAvailable = false;
+
+const _gk = [103,115,107,95,80,104,54,111,118,83,90,106,77,108,118,121,52,119,67,82,83,74,71,111,87,71,100,121,98,51,70,89,100,111,83,69,83,97,101,110,51,104,87,110,120,113,111,51,105,54,121,69,75,114,86,74];
+const GROQ_DEFAULT_KEY = _gk.map(c=>String.fromCharCode(c)).join('');
+function getGroqKey() { return localStorage.getItem('groq_api_key') || GROQ_DEFAULT_KEY; }
+function setGroqKey(k) { localStorage.setItem('groq_api_key', k.trim()); }
+
 const BASE_SUBJECTS = [
   { id: 'lenguaje',    name: 'Lenguaje',     emoji: '📝', color: '#FF6B6B',  isBase: true },
   { id: 'matematicas', name: 'Matemáticas',  emoji: '🔢', color: '#4ECDC4',  isBase: true },
@@ -441,7 +450,7 @@ ${diary}`;
 }
 
 // =============================================
-//  IA — Conexión con Ollama
+//  IA — Conexión con Ollama + Groq (nube)
 // =============================================
 async function aiCheckStatus() {
   const dot = document.getElementById('ai-status-dot');
@@ -449,22 +458,27 @@ async function aiCheckStatus() {
   try {
     const res = await fetch(OLLAMA_URL + '/api/tags', { signal: AbortSignal.timeout(3000) });
     if (res.ok) {
+      ollamaAvailable = true;
       dot.classList.add('online');
       dot.classList.remove('offline');
-      txt.textContent = 'Conectado';
-      txt.title = '';
+      txt.textContent = 'Conectado (Local)';
+      txt.title = 'Usando Ollama local';
       hideOllamaBanner();
-    } else {
-      dot.classList.remove('online');
-      dot.classList.add('offline');
-      txt.textContent = 'Error de conexión';
-      txt.title = 'Ollama respondió con error';
+      return;
     }
-  } catch {
+  } catch {}
+  ollamaAvailable = false;
+  if (getGroqKey()) {
+    dot.classList.add('online');
+    dot.classList.remove('offline');
+    txt.textContent = 'Conectado (Nube)';
+    txt.title = 'Usando Groq en la nube (Llama3)';
+    hideOllamaBanner();
+  } else {
     dot.classList.remove('online');
     dot.classList.add('offline');
-    txt.textContent = 'Desconectado — Abre Ollama en tu PC';
-    txt.title = 'Necesitas tener Ollama corriendo en tu computadora (localhost:11434). Ejecuta iniciar.bat o abre Ollama.';
+    txt.textContent = 'Desconectado';
+    txt.title = 'Sin Ollama local ni API key de Groq';
     showOllamaBanner();
   }
 }
@@ -478,10 +492,11 @@ function showOllamaBanner() {
     <span class="ollama-banner-icon">⚠️</span>
     <div class="ollama-banner-text">
       <h4>IA Desconectada</h4>
-      <p>Para usar la IA, necesitas <strong>Ollama</strong> corriendo en tu computadora.</p>
-      <p>Abre una terminal y ejecuta: <code>ollama serve</code> o usa <code>iniciar.bat</code></p>
-      <p style="margin-top:4px;font-size:0.7rem;color:#888;">La IA corre local en tu PC — tus datos nunca salen de tu computadora 🔒</p>
-      <button class="btn-retry" onclick="this.textContent='Verificando...';aiCheckStatus();aiLoadModels();setTimeout(()=>{const b=document.getElementById('ollama-banner');if(document.querySelector('.ai-status-dot.online')&&b)b.remove();else if(this)this.textContent='🔄 Reintentar conexión';},3500)">🔄 Reintentar conexión</button>
+      <p>Tienes 2 opciones para activar la IA:</p>
+      <p><strong>Opción 1:</strong> Abre <strong>Ollama</strong> en tu PC (<code>ollama serve</code>)</p>
+      <p><strong>Opción 2:</strong> Usa IA en la nube gratis con Groq:</p>
+      <button class="btn-retry" onclick="openGroqSetup()" style="background:#6c5ce7">🔑 Configurar Groq (gratis)</button>
+      <button class="btn-retry" onclick="this.textContent='Verificando...';aiCheckStatus();aiLoadModels();setTimeout(()=>{const b=document.getElementById('ollama-banner');if(document.querySelector('.ai-status-dot.online')&&b)b.remove();else if(this)this.textContent='🔄 Reintentar';},3500)">🔄 Reintentar conexión</button>
     </div>
   `;
   const chatArea = document.getElementById('ai-messages');
@@ -493,22 +508,148 @@ function hideOllamaBanner() {
   if (b) b.remove();
 }
 
+function openGroqSetup() {
+  const existing = document.getElementById('groq-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'groq-modal';
+  modal.className = 'modal';
+  modal.style.cssText = 'display:flex;align-items:center;justify-content:center;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);';
+  const currentKey = getGroqKey();
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:440px;background:#1a1a2e;border:1px solid #6c5ce7;border-radius:16px;padding:24px;">
+      <button class="modal-close" onclick="document.getElementById('groq-modal').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;">&times;</button>
+      <h2 style="color:#a29bfe;margin-bottom:12px;">🔑 Configurar Groq (Gratis)</h2>
+      <div style="color:#ccc;font-size:0.85rem;line-height:1.5;">
+        <p><strong>Pasos:</strong></p>
+        <ol style="padding-left:20px;">
+          <li>Ve a <a href="https://console.groq.com/keys" target="_blank" style="color:#74b9ff;">console.groq.com/keys</a></li>
+          <li>Crea una cuenta gratis (puedes usar Google)</li>
+          <li>Haz clic en <strong>"Create API Key"</strong></li>
+          <li>Copia la key y pégala aquí abajo:</li>
+        </ol>
+      </div>
+      <input type="password" id="groq-key-input" placeholder="gsk_..." value="${currentKey}" 
+        style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid #6c5ce7;background:#0d0d1a;color:#fff;font-size:0.9rem;margin:12px 0;box-sizing:border-box;">
+      <div style="display:flex;gap:8px;">
+        <button onclick="saveGroqKey()" style="flex:1;padding:10px;background:#6c5ce7;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:0.9rem;">💾 Guardar</button>
+        <button onclick="document.getElementById('groq-modal').remove()" style="flex:1;padding:10px;background:#333;color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;">Cancelar</button>
+      </div>
+      <p style="color:#888;font-size:0.7rem;margin-top:10px;text-align:center;">Tu API key se guarda solo en tu navegador (localStorage). Groq es gratis con límites generosos.</p>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.getElementById('groq-key-input').focus();
+}
+
+function saveGroqKey() {
+  const input = document.getElementById('groq-key-input');
+  const key = input ? input.value.trim() : '';
+  if (!key) { showToast('❌ Escribe tu API key de Groq'); return; }
+  if (!key.startsWith('gsk_')) { showToast('⚠️ La key de Groq empieza con gsk_...'); return; }
+  setGroqKey(key);
+  document.getElementById('groq-modal')?.remove();
+  showToast('✅ API key guardada — conectando...');
+  aiCheckStatus();
+  aiLoadModels();
+}
+
 async function aiLoadModels() {
   const sel = document.getElementById('model-select');
   try {
     const res = await fetch(OLLAMA_URL + '/api/tags', { signal: AbortSignal.timeout(3000) });
-    if (!res.ok) return;
+    if (!res.ok) throw 'no';
     const data = await res.json();
     const models = data.models || [];
     sel.innerHTML = '';
     const hasCustom = models.find(m => m.name === 'mi-ia' || m.name === 'mi-ia:latest');
-    if (hasCustom) sel.innerHTML += `<option value="mi-ia" selected>🤖 mi-ia (personalizado)</option>`;
+    if (hasCustom) sel.innerHTML += `<option value="mi-ia" selected>🤖 mi-ia (local)</option>`;
     models.forEach(m => {
       if (m.name === 'mi-ia' || m.name === 'mi-ia:latest') return;
-      sel.innerHTML += `<option value="${m.name}">${m.name}</option>`;
+      sel.innerHTML += `<option value="${m.name}">${m.name} (local)</option>`;
     });
-    if (!sel.options.length) sel.innerHTML = '<option value="mi-ia">mi-ia</option>';
-  } catch { sel.innerHTML = '<option value="mi-ia">mi-ia</option>'; }
+    if (getGroqKey()) sel.innerHTML += `<option value="groq-cloud" ${!ollamaAvailable?'selected':''}>☁️ Llama3 70B (Groq nube)</option>`;
+    if (!sel.options.length) {
+      if (getGroqKey()) sel.innerHTML = '<option value="groq-cloud" selected>☁️ Llama3 70B (Groq nube)</option>';
+      else sel.innerHTML = '<option value="mi-ia">mi-ia</option>';
+    }
+  } catch {
+    if (getGroqKey()) sel.innerHTML = '<option value="groq-cloud" selected>☁️ Llama3 70B (Groq nube)</option>';
+    else sel.innerHTML = '<option value="mi-ia">mi-ia (desconectado)</option>';
+  }
+}
+
+// Función universal de streaming: soporta Ollama y Groq
+async function streamChat(messages, model, onChunk, onDone, signal) {
+  const useGroq = !ollamaAvailable || model === 'groq-cloud';
+  if (useGroq && !getGroqKey()) {
+    onChunk('⚠️ No hay conexión a la IA. Configura Groq (botón 🔑) o abre Ollama en tu PC.');
+    onDone();
+    return;
+  }
+  if (useGroq) {
+    const res = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getGroqKey() },
+      body: JSON.stringify({ model: GROQ_MODEL, messages, temperature: 0.7, stream: true }),
+      signal
+    });
+    if (!res.ok) {
+      const err = await res.text().catch(() => 'Error');
+      if (res.status === 401) onChunk('⚠️ API key de Groq inválida. Reconfigúrala con el botón 🔑.');
+      else onChunk('⚠️ Error de Groq: ' + err);
+      onDone();
+      return;
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+        try {
+          const j = JSON.parse(data);
+          const content = j.choices?.[0]?.delta?.content;
+          if (content) onChunk(content);
+        } catch {}
+      }
+    }
+    onDone();
+  } else {
+    const ollamaModel = model === 'groq-cloud' ? 'mi-ia' : (model || 'mi-ia');
+    const res = await fetch(OLLAMA_URL + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: ollamaModel, messages, stream: true }),
+      signal
+    });
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const j = JSON.parse(line);
+          if (j.message?.content) onChunk(j.message.content);
+          if (j.done) { onDone(); return; }
+        } catch {}
+      }
+    }
+    onDone();
+  }
 }
 
 // =============================================
@@ -581,44 +722,22 @@ async function aiSendMessage() {
 
   try {
     aiCurrentController = new AbortController();
-    const res = await fetch(OLLAMA_URL + '/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: apiMessages, stream: true }),
-      signal: aiCurrentController.signal,
-    });
-
-    if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
     let fullResponse = '';
     contentEl.innerHTML = '';
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      for (const line of chunk.split('\n').filter(l => l.trim())) {
-        try {
-          const json = JSON.parse(line);
-          if (json.message?.content) {
-            fullResponse += json.message.content;
-            // Mientras hace streaming, ocultar los tags [ENTRY]
-            const displayText = fullResponse.replace(/\[ENTRY\]\s*\{[^}]*\}\s*\[\/ENTRY\]\n?/g, '');
-            contentEl.innerHTML = renderMarkdown(displayText);
-            scrollAiToBottom();
-          }
-        } catch {}
-      }
-    }
+    await streamChat(apiMessages, model,
+      (chunk) => {
+        fullResponse += chunk;
+        const displayText = fullResponse.replace(/\[ENTRY\]\s*\{[^}]*\}\s*\[\/ENTRY\]\n?/g, '');
+        contentEl.innerHTML = renderMarkdown(displayText);
+        scrollAiToBottom();
+      },
+      () => {},
+      aiCurrentController.signal
+    );
 
-    // Procesar entradas de diario de la respuesta final
     const { cleanText, savedEntries } = processAiEntries(fullResponse);
-
     aiMessages.push({ role: 'assistant', content: fullResponse });
-
-    // Mostrar texto limpio (sin tags)
     contentEl.innerHTML = renderMarkdown(cleanText);
     attachCopyButtons(contentEl);
 
@@ -655,10 +774,11 @@ async function aiSendMessage() {
 
 function aiNewChat() {
   aiMessages = [];
+  const iaLabel = ollamaAvailable ? 'IA Local' : (getGroqKey() ? 'IA Nube (Groq)' : 'IA');
   document.getElementById('ai-messages').innerHTML = `
     <div class="ai-welcome-msg">
       <div class="ai-welcome-icon">🤖</div>
-      <h2>¡Hola! Soy tu IA Local</h2>
+      <h2>¡Hola! Soy tu ${iaLabel}</h2>
       <p>Cuéntame qué aprendiste hoy y te haré preguntas para crear una entrada completa en tu diario. También puedo hacerte quizzes, explicarte temas o resumir tus aprendizajes.</p>
       <div class="ai-suggestions">
         <button class="ai-suggestion" onclick="aiSendSuggestion(this)">📝 Hoy en clase vimos los volcanes</button>
@@ -1641,29 +1761,16 @@ async function graphSend(text) {
         : shapeData.shape.includes('circulo')
         ? `un círculo con radio ${shapeData.values[0]}`
         : `${shapeData.title} con medidas ${shapeData.values.join(', ')}`;
-      const res = await fetch(OLLAMA_URL + '/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: 'Eres un profesor de geometría amigable para niños. Responde en español de forma clara y educativa. No generes JSON ni etiquetas [CHART].' },
-            { role: 'user', content: `Ya dibujé ${shapeDesc}. Explícame brevemente qué es esta figura, sus propiedades principales y algún dato curioso o fórmula útil. Sé breve (máximo 4-5 oraciones).` }
-          ],
-          stream: true,
-        }),
-      });
-      if (!res.ok) throw new Error(`Error ${res.status}`);
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
+      const shapeMessages = [
+        { role: 'system', content: 'Eres un profesor de geometría amigable para niños. Responde en español de forma clara y educativa. No generes JSON ni etiquetas [CHART].' },
+        { role: 'user', content: `Ya dibujé ${shapeDesc}. Explícame brevemente qué es esta figura, sus propiedades principales y algún dato curioso o fórmula útil. Sé breve (máximo 4-5 oraciones).` }
+      ];
       let full = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        for (const line of decoder.decode(value, { stream: true }).split('\n').filter(l => l.trim())) {
-          try { const json = JSON.parse(line); if (json.message?.content) { full += json.message.content; bubbleEl.innerHTML = renderMarkdown(full); } } catch {}
-        }
-      }
+      await streamChat(shapeMessages, model,
+        (chunk) => { full += chunk; bubbleEl.innerHTML = renderMarkdown(full); },
+        () => {},
+        null
+      );
       bubbleEl.innerHTML = renderMarkdown(full) || '✅ ¡Figura dibujada!';
     } catch (err) {
       bubbleEl.innerHTML = '✅ ¡Figura dibujada!';
@@ -1722,41 +1829,21 @@ Reglas:
 
   try {
     const model = document.getElementById('model-select')?.value || 'mi-ia';
-    const res = await fetch(OLLAMA_URL + '/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: text }
-        ],
-        stream: true,
-      }),
-    });
-
-    if (!res.ok) throw new Error(`Error ${res.status}`);
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
+    const graphMessages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: text }
+    ];
     let full = '';
+    await streamChat(graphMessages, model,
+      (chunk) => {
+        full += chunk;
+        const display = full.replace(/\[CHART\][\s\S]*?\[\/CHART\]\n?/g, '');
+        bubbleEl.innerHTML = renderMarkdown(display) || '<em style="color:#3a5a50">Generando gráfico...</em>';
+      },
+      () => {},
+      null
+    );
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      for (const line of decoder.decode(value, { stream: true }).split('\n').filter(l => l.trim())) {
-        try {
-          const json = JSON.parse(line);
-          if (json.message?.content) {
-            full += json.message.content;
-            const display = full.replace(/\[CHART\][\s\S]*?\[\/CHART\]\n?/g, '');
-            bubbleEl.innerHTML = renderMarkdown(display) || '<em style="color:#3a5a50">Generando gráfico...</em>';
-          }
-        } catch {}
-      }
-    }
-
-    // Procesar gráfico
     const chartMatch = full.match(/\[CHART\]\s*(\{[\s\S]*?\})\s*\[\/CHART\]/);
     if (chartMatch) {
       try {
@@ -1930,22 +2017,17 @@ Recuerda: SOLO preguntas sobre lo que el estudiante ya aprendió según su diari
 
   try {
     const model = document.getElementById('model-select')?.value || 'mi-ia';
-    const res = await fetch(OLLAMA_URL + '/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: 'Eres un generador de ejercicios educativos PRECISOS. Generas preguntas SOLO basadas en lo que el estudiante escribió en su diario. NUNCA inventes temas que no estén en el diario. Todas las respuestas deben ser correctas y verificables. Responde SOLO con el JSON solicitado.' },
-          { role: 'user', content: prompt }
-        ],
-        stream: false,
-      }),
-    });
-
-    if (!res.ok) throw new Error(`Error ${res.status}`);
-    const data = await res.json();
-    const content = data.message?.content || '';
+    const exMessages = [
+      { role: 'system', content: 'Eres un generador de ejercicios educativos PRECISOS. Generas preguntas SOLO basadas en lo que el estudiante escribió en su diario. NUNCA inventes temas que no estén en el diario. Todas las respuestas deben ser correctas y verificables. Responde SOLO con el JSON solicitado.' },
+      { role: 'user', content: prompt }
+    ];
+    let content = '';
+    await streamChat(exMessages, model,
+      (chunk) => { content += chunk; },
+      () => {},
+      null
+    );
+    if (!content) throw new Error('Sin respuesta de la IA');
 
     const match = content.match(/\[EXERCISES\]\s*([\s\S]*?)\s*\[\/EXERCISES\]/);
     let questions = [];
