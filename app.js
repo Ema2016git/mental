@@ -60,6 +60,7 @@ function switchView(view) {
   document.getElementById('ai-view').classList.toggle('hidden', view !== 'ai');
   document.getElementById('graph-view').classList.toggle('hidden', view !== 'graph');
   document.getElementById('exercises-view').classList.toggle('hidden', view !== 'exercises');
+  document.getElementById('parents-view').classList.toggle('hidden', view !== 'parents');
 
   if (view === 'exercises') {
     document.body.style.overflow = 'hidden';
@@ -214,7 +215,10 @@ function renderEntries(id) {
   const color = state.subjects.find(s => s.id === id)?.color || 'var(--primary)';
   container.innerHTML = entries.map((e, i) => `
     <div class="entry-card" style="border-left-color:${color}">
-      <button class="delete-entry" onclick="deleteEntry('${id}',${i})" title="Eliminar">🗑️</button>
+      <div class="entry-actions">
+        <button class="entry-share-btn" onclick="shareEntry('${id}',${i})" title="Compartir">🔗</button>
+        <button class="delete-entry" onclick="deleteEntry('${id}',${i})" title="Eliminar">🗑️</button>
+      </div>
       <div class="entry-date">📅 ${formatDate(e.date)}</div>
       <div class="entry-text">${escapeHtml(e.text)}</div>
     </div>`).join('');
@@ -2261,4 +2265,220 @@ function renderHistory() {
   list.innerHTML = exState.history.slice(0, 10).map(h =>
     `<div class="ex-hist-item"><strong>${h.score}/${h.total}</strong> (${h.pct}%) — ${h.date}</div>`
   ).join('') || '<div class="ex-hist-item" style="color:#5a4a30">Sin historial aún</div>';
+}
+
+// =============================================
+//  VOZ — Entrada por voz (Web Speech API)
+// =============================================
+let voiceRecognition = null;
+let voiceTargetId = null;
+
+function startVoice(targetId) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('⚠️ Tu navegador no soporta entrada por voz'); return; }
+
+  if (voiceRecognition) { voiceRecognition.stop(); voiceRecognition = null; return; }
+
+  voiceTargetId = targetId;
+  voiceRecognition = new SR();
+  voiceRecognition.lang = 'es-ES';
+  voiceRecognition.interimResults = true;
+  voiceRecognition.continuous = true;
+
+  const btn = document.querySelector(`[onclick="startVoice('${targetId}')"]`);
+  if (btn) { btn.classList.add('voice-active'); btn.textContent = '🔴'; }
+  showToast('🎤 Escuchando... habla ahora');
+
+  let finalText = '';
+  const target = document.getElementById(targetId);
+  const originalText = target.value;
+
+  voiceRecognition.onresult = (e) => {
+    let interim = '';
+    finalText = '';
+    for (let i = 0; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finalText += e.results[i][0].transcript + ' ';
+      else interim += e.results[i][0].transcript;
+    }
+    target.value = originalText + (originalText ? ' ' : '') + finalText + interim;
+    if (targetId === 'ai-input') aiAutoResize(target);
+  };
+
+  voiceRecognition.onerror = (e) => {
+    if (e.error !== 'no-speech') showToast('⚠️ Error de voz: ' + e.error);
+    stopVoice();
+  };
+
+  voiceRecognition.onend = () => { stopVoice(); };
+  voiceRecognition.start();
+}
+
+function stopVoice() {
+  if (voiceRecognition) { try { voiceRecognition.stop(); } catch {} voiceRecognition = null; }
+  document.querySelectorAll('.voice-active').forEach(b => { b.classList.remove('voice-active'); b.textContent = '🎤'; });
+}
+
+// =============================================
+//  COMPARTIR — Generar código y compartir entradas
+// =============================================
+function generateParentCode() {
+  if (!state.currentUser) { showToast('⚠️ Inicia sesión primero'); return; }
+  const data = {
+    user: state.currentUser,
+    subjects: state.subjects,
+    entries: state.entries,
+    exHistory: JSON.parse(localStorage.getItem('ex_history') || '[]'),
+    generatedAt: new Date().toISOString()
+  };
+  const code = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  const shortCode = 'PAD-' + state.currentUser.name.substring(0, 3).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+  localStorage.setItem('parent_share_' + shortCode, code);
+  localStorage.setItem('parent_code_' + state.currentUser.username, shortCode);
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.id = 'share-modal';
+  modal.style.cssText = 'display:flex;align-items:center;justify-content:center;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:420px;text-align:center;">
+      <button class="modal-close" onclick="document.getElementById('share-modal').remove()">&times;</button>
+      <div style="font-size:3rem;margin-bottom:10px;">👨‍👩‍👧</div>
+      <h2>Código para tus Padres</h2>
+      <p style="color:var(--dark-text2);font-size:0.85rem;">Comparte este código con tus padres. Ellos lo ingresan en la sección "Padres" para ver tu progreso.</p>
+      <div style="background:var(--dark-card);border:2px dashed var(--primary);border-radius:12px;padding:16px;margin:16px 0;">
+        <div style="font-size:1.5rem;font-weight:800;letter-spacing:3px;color:var(--primary);" id="parent-code-display">${shortCode}</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" style="flex:1" onclick="copyParentCode()">📋 Copiar código</button>
+        <button class="btn btn-primary" style="flex:1;background:#25D366" onclick="shareWhatsApp()">💬 WhatsApp</button>
+      </div>
+      <p style="font-size:0.7rem;color:#888;margin-top:12px;">El código se guarda en este dispositivo. Si borras datos del navegador, genera uno nuevo.</p>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function copyParentCode() {
+  const code = document.getElementById('parent-code-display')?.textContent;
+  if (code) {
+    navigator.clipboard.writeText(code).then(() => showToast('✅ Código copiado'));
+  }
+}
+
+function shareWhatsApp() {
+  const code = document.getElementById('parent-code-display')?.textContent;
+  const url = window.location.origin + window.location.pathname;
+  const msg = `👨‍👩‍👧 ¡Hola! Puedes ver mi progreso escolar:\n\n1. Entra a: ${url}\n2. Ve a la sección "Padres"\n3. Ingresa este código: *${code}*\n\n📚 Mi Diario Escolar + IA`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function shareEntry(subjectId, entryIndex) {
+  const sub = state.subjects.find(s => s.id === subjectId);
+  const entry = (state.entries[subjectId] || [])[entryIndex];
+  if (!sub || !entry) return;
+  const text = `📖 *${sub.emoji} ${sub.name}*\n📅 ${entry.date}\n\n${entry.text}\n\n— Mi Diario Escolar`;
+  if (navigator.share) {
+    navigator.share({ title: sub.name, text }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(() => showToast('✅ Entrada copiada'));
+  }
+}
+
+// =============================================
+//  PADRES — Panel de visualización
+// =============================================
+let parentData = null;
+
+function parentLogin() {
+  const input = document.getElementById('parent-code-input');
+  const code = input.value.trim().toUpperCase();
+  if (!code) { showToast('⚠️ Escribe el código del estudiante'); return; }
+
+  const stored = localStorage.getItem('parent_share_' + code);
+  if (!stored) { showToast('❌ Código no encontrado. Pide a tu hijo/a que genere uno nuevo.'); return; }
+
+  try {
+    parentData = JSON.parse(decodeURIComponent(escape(atob(stored))));
+    document.getElementById('parents-auth').classList.add('hidden');
+    document.getElementById('parents-dashboard').classList.remove('hidden');
+    renderParentDashboard();
+    showToast('✅ ¡Bienvenido/a!');
+  } catch { showToast('❌ Error al leer los datos'); }
+}
+
+function parentLogout() {
+  parentData = null;
+  document.getElementById('parents-auth').classList.remove('hidden');
+  document.getElementById('parents-dashboard').classList.add('hidden');
+  document.getElementById('parent-code-input').value = '';
+}
+
+function renderParentDashboard() {
+  if (!parentData) return;
+  const u = parentData.user;
+  const genDate = new Date(parentData.generatedAt).toLocaleDateString('es');
+
+  document.getElementById('parents-student-info').innerHTML = `
+    <div class="parent-student-card">
+      <div class="parent-student-avatar">👤</div>
+      <div>
+        <h3>${escapeHtml(u.name)}</h3>
+        <p>${u.age ? u.age + ' años' : ''} · Datos del ${genDate}</p>
+      </div>
+    </div>
+  `;
+
+  let totalEntries = 0;
+  let totalSubjects = 0;
+  let activeDays = new Set();
+  parentData.subjects.forEach(sub => {
+    const entries = parentData.entries[sub.id] || [];
+    if (entries.length > 0) totalSubjects++;
+    totalEntries += entries.length;
+    entries.forEach(e => activeDays.add(e.date));
+  });
+
+  const exHistory = parentData.exHistory || [];
+  const avgScore = exHistory.length > 0
+    ? Math.round(exHistory.reduce((s, h) => s + (h.pct || 0), 0) / exHistory.length)
+    : 0;
+
+  document.getElementById('parents-stats-grid').innerHTML = `
+    <div class="parent-stat-card">
+      <div class="parent-stat-num">${totalEntries}</div>
+      <div class="parent-stat-label">📝 Entradas</div>
+    </div>
+    <div class="parent-stat-card">
+      <div class="parent-stat-num">${totalSubjects}</div>
+      <div class="parent-stat-label">📚 Materias activas</div>
+    </div>
+    <div class="parent-stat-card">
+      <div class="parent-stat-num">${activeDays.size}</div>
+      <div class="parent-stat-label">📅 Días activos</div>
+    </div>
+    <div class="parent-stat-card">
+      <div class="parent-stat-num">${avgScore}%</div>
+      <div class="parent-stat-label">✏️ Prom. ejercicios</div>
+    </div>
+  `;
+
+  let entriesHTML = '';
+  parentData.subjects.forEach(sub => {
+    const entries = (parentData.entries[sub.id] || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (entries.length === 0) return;
+    entriesHTML += `<div class="parent-subject-title">${sub.emoji} ${sub.name} (${entries.length})</div>`;
+    entries.slice(0, 5).forEach(e => {
+      entriesHTML += `<div class="parent-entry-card"><span class="parent-entry-date">📅 ${e.date}</span><p>${escapeHtml(e.text)}</p></div>`;
+    });
+  });
+  document.getElementById('parents-entries').innerHTML = entriesHTML || '<p style="color:var(--dark-text2)">Sin entradas aún</p>';
+
+  let exHTML = '';
+  if (exHistory.length > 0) {
+    exHistory.slice(0, 10).forEach(h => {
+      const color = h.pct >= 70 ? '#2ed573' : h.pct >= 40 ? '#ffa502' : '#ff4757';
+      exHTML += `<div class="parent-ex-card"><strong style="color:${color}">${h.score}/${h.total}</strong> (${h.pct}%) — ${h.date}</div>`;
+    });
+  }
+  document.getElementById('parents-exercises').innerHTML = exHTML || '<p style="color:var(--dark-text2)">Sin ejercicios realizados aún</p>';
 }

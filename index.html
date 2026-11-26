@@ -27,6 +27,9 @@
       <button class="nav-tab" data-view="exercises" onclick="switchView('exercises')">
         ✏️ Ejercicios
       </button>
+      <button class="nav-tab" data-view="parents" onclick="switchView('parents')">
+        👨‍👩‍👧 Padres
+      </button>
     </div>
   </nav>
 
@@ -134,6 +137,7 @@
       <section id="subjects-grid"></section>
       <div id="add-subject-area" class="hidden">
         <button class="btn btn-add-subject" onclick="openSubjectModal()">➕ Agregar Nueva Materia</button>
+        <button class="btn btn-share-parents" onclick="generateParentCode()">👨‍👩‍👧 Compartir con padres</button>
       </div>
       <section id="subject-view" class="hidden">
         <button class="btn btn-back" onclick="goBack()">← Volver a mis materias</button>
@@ -148,6 +152,7 @@
             <div class="form-group">
               <label for="entry-text">📝 Lo que aprendí</label>
               <textarea id="entry-text" rows="4" placeholder="Hoy aprendí que..." required></textarea>
+              <button type="button" class="btn-voice" onclick="startVoice('entry-text')" title="Dictar por voz">🎤</button>
             </div>
             <button type="submit" class="btn btn-primary">Guardar Entrada 💾</button>
           </form>
@@ -206,6 +211,7 @@
           onkeydown="aiHandleKeydown(event)"
           oninput="aiAutoResize(this)"
         ></textarea>
+        <button class="btn-voice-mini" onclick="startVoice('ai-input')" title="Dictar por voz">🎤</button>
         <button id="ai-send-btn" onclick="aiSendMessage()" title="Enviar">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -367,6 +373,47 @@
             <div class="graph-grid-bg"></div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ VISTA: PADRES ============ -->
+  <div id="parents-view" class="view-container hidden">
+    <div id="parents-layout">
+      <div id="parents-header">
+        <div class="parents-header-icon">👨‍👩‍👧</div>
+        <div>
+          <h2>Panel de Padres</h2>
+          <p id="parents-subtitle">Revisa el progreso de tu hijo/a</p>
+        </div>
+      </div>
+
+      <div id="parents-auth" class="parents-card">
+        <h3>🔐 Acceso para Padres</h3>
+        <p>Ingresa el código de tu hijo/a para ver su progreso:</p>
+        <div class="form-group">
+          <input type="text" id="parent-code-input" placeholder="Código del estudiante..." style="text-transform:uppercase">
+        </div>
+        <button class="btn btn-primary btn-full" onclick="parentLogin()">Ver Progreso 👀</button>
+        <p style="font-size:0.75rem;color:var(--dark-text2);margin-top:10px;">💡 El estudiante puede generar su código desde "Mi Diario" → "Compartir con padres"</p>
+      </div>
+
+      <div id="parents-dashboard" class="hidden">
+        <div class="parents-student-info" id="parents-student-info"></div>
+
+        <div class="parents-stats-grid" id="parents-stats-grid"></div>
+
+        <div class="parents-section">
+          <h3>📖 Últimas entradas del diario</h3>
+          <div id="parents-entries"></div>
+        </div>
+
+        <div class="parents-section">
+          <h3>✏️ Resultados de ejercicios</h3>
+          <div id="parents-exercises"></div>
+        </div>
+
+        <button class="btn btn-back" onclick="parentLogout()" style="margin-top:16px">← Salir del panel</button>
       </div>
     </div>
   </div>
