@@ -1271,10 +1271,22 @@ function drawShape(data) {
 
   if (shape.includes('triang') || shape.includes('triangle')) {
     drawTriangle(ctx, W, H, data);
-  } else if (shape.includes('rect') || shape.includes('cuadra') || shape.includes('square')) {
+  } else if (shape.includes('cuadra') || shape.includes('square')) {
+    drawRectShape(ctx, W, H, data);
+  } else if (shape.includes('rect')) {
     drawRectShape(ctx, W, H, data);
   } else if (shape.includes('circ') || shape.includes('circle')) {
     drawCircleShape(ctx, W, H, data);
+  } else if (shape.includes('ovalo') || shape.includes('elipse')) {
+    drawOval(ctx, W, H, data);
+  } else if (shape.includes('rombo')) {
+    drawRhombus(ctx, W, H, data);
+  } else if (shape.includes('trapecio')) {
+    drawTrapezoid(ctx, W, H, data);
+  } else if (shape.includes('estrella')) {
+    drawStar(ctx, W, H, data);
+  } else if (shape.includes('octa')) {
+    drawPolygon(ctx, W, H, data, 8);
   } else if (shape.includes('penta')) {
     drawPolygon(ctx, W, H, data, 5);
   } else if (shape.includes('hexa')) {
@@ -1673,6 +1685,130 @@ function drawPolygon(ctx, W, H, data, sides) {
   ctx.fillText(`${sides} lados · ${sides} vértices`, cx, cy + radius + 30);
 }
 
+// Rombo
+function drawRhombus(ctx, W, H, data) {
+  const color = data.color || '#ee5a24';
+  const vals = data.values || [8, 5];
+  const dMaj = Math.min(W, H) * 0.35;
+  const dMin = dMaj * (vals[1] / vals[0]) || dMaj * 0.6;
+  const cx = W / 2, cy = H / 2 + 15;
+  const pts = [
+    { x: cx, y: cy - dMaj },
+    { x: cx + dMin, y: cy },
+    { x: cx, y: cy + dMaj },
+    { x: cx - dMin, y: cy }
+  ];
+  ctx.shadowColor = color; ctx.shadowBlur = 25;
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, dMaj);
+  grad.addColorStop(0, color + '30'); grad.addColorStop(1, color + '08');
+  ctx.fillStyle = grad; ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 15; ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  ctx.beginPath(); pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath(); ctx.stroke(); ctx.shadowBlur = 0;
+  // Diagonals dashed
+  ctx.setLineDash([6, 4]); ctx.strokeStyle = color + '60'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[2].x, pts[2].y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pts[1].x, pts[1].y); ctx.lineTo(pts[3].x, pts[3].y); ctx.stroke();
+  ctx.setLineDash([]);
+  pts.forEach(p => { ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill(); });
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#c0d8e8'; ctx.font = '12px "Segoe UI"'; ctx.textAlign = 'center';
+  ctx.fillText(`D₁ = ${vals[0]}`, cx + dMin + 20, cy);
+  ctx.fillText(`D₂ = ${vals[1]}`, cx, cy - dMaj - 10);
+  ctx.fillText(`Área = D₁×D₂/2 = ${(vals[0] * vals[1] / 2).toFixed(1)}`, cx, cy + dMaj + 30);
+  showCanvas(data.title || 'Rombo');
+}
+
+// Trapecio
+function drawTrapezoid(ctx, W, H, data) {
+  const color = data.color || '#6c5ce7';
+  const vals = data.values || [10, 6, 5];
+  const scale = Math.min(W, H) * 0.04;
+  const baseMayor = vals[0] * scale, baseMenor = vals[1] * scale, h = vals[2] * scale;
+  const cx = W / 2, bottom = H / 2 + h / 2 + 15, top = H / 2 - h / 2 + 15;
+  const pts = [
+    { x: cx - baseMayor / 2, y: bottom },
+    { x: cx + baseMayor / 2, y: bottom },
+    { x: cx + baseMenor / 2, y: top },
+    { x: cx - baseMenor / 2, y: top }
+  ];
+  ctx.shadowColor = color; ctx.shadowBlur = 25;
+  const grad = ctx.createLinearGradient(cx, top, cx, bottom);
+  grad.addColorStop(0, color + '30'); grad.addColorStop(1, color + '10');
+  ctx.fillStyle = grad; ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 15; ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+  ctx.beginPath(); pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath(); ctx.stroke(); ctx.shadowBlur = 0;
+  // Height line
+  ctx.setLineDash([5, 3]); ctx.strokeStyle = '#ffd700aa'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, bottom); ctx.stroke(); ctx.setLineDash([]);
+  pts.forEach(p => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill(); });
+  ctx.fillStyle = '#c0d8e8'; ctx.font = '12px "Segoe UI"'; ctx.textAlign = 'center';
+  ctx.fillText(`B = ${vals[0]}`, cx, bottom + 22);
+  ctx.fillText(`b = ${vals[1]}`, cx, top - 12);
+  ctx.fillText(`h = ${vals[2]}`, cx + 15, (top + bottom) / 2);
+  ctx.fillText(`Área = (B+b)×h/2 = ${((vals[0] + vals[1]) * vals[2] / 2).toFixed(1)}`, cx, bottom + 42);
+  showCanvas(data.title || 'Trapecio');
+}
+
+// Estrella
+function drawStar(ctx, W, H, data) {
+  const color = data.color || '#ffd700';
+  const pts = data.values?.[0] || 5;
+  const cx = W / 2, cy = H / 2 + 15;
+  const outerR = Math.min(W, H) * 0.32;
+  const innerR = outerR * 0.4;
+  const points = [];
+  for (let i = 0; i < pts * 2; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const angle = (Math.PI * i / pts) - Math.PI / 2;
+    points.push({ x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) });
+  }
+  ctx.shadowColor = color; ctx.shadowBlur = 30;
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, outerR);
+  grad.addColorStop(0, color + '40'); grad.addColorStop(1, color + '08');
+  ctx.fillStyle = grad; ctx.beginPath();
+  points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 20; ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+  ctx.beginPath(); points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath(); ctx.stroke(); ctx.shadowBlur = 0;
+  ctx.fillStyle = '#c0d8e8'; ctx.font = '13px "Segoe UI"'; ctx.textAlign = 'center';
+  ctx.fillText(`Estrella de ${pts} puntas`, cx, cy + outerR + 30);
+  showCanvas(data.title || 'Estrella');
+}
+
+// Óvalo / Elipse
+function drawOval(ctx, W, H, data) {
+  const color = data.color || '#e056fd';
+  const vals = data.values || [7, 4];
+  const scale = Math.min(W, H) * 0.04;
+  const a = vals[0] * scale, b = vals[1] * scale;
+  const cx = W / 2, cy = H / 2 + 15;
+  ctx.shadowColor = color; ctx.shadowBlur = 25;
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, a);
+  grad.addColorStop(0, color + '30'); grad.addColorStop(1, color + '08');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.ellipse(cx, cy, a, b, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 15; ctx.strokeStyle = color; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.ellipse(cx, cy, a, b, 0, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
+  // Axes
+  ctx.setLineDash([5, 3]); ctx.strokeStyle = color + '60'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(cx - a, cy); ctx.lineTo(cx + a, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy - b); ctx.lineTo(cx, cy + b); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = color; ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#c0d8e8'; ctx.font = '12px "Segoe UI"'; ctx.textAlign = 'center';
+  ctx.fillText(`a = ${vals[0]}`, cx + a / 2, cy - 12);
+  ctx.fillText(`b = ${vals[1]}`, cx + 15, cy - b / 2);
+  ctx.fillText(`Área = π×a×b ≈ ${(Math.PI * vals[0] * vals[1]).toFixed(1)}`, cx, cy + b + 30);
+  showCanvas(data.title || 'Óvalo');
+}
+
 function showCanvas(title) {
   document.getElementById('graph-canvas').classList.add('visible');
   document.getElementById('graph-placeholder').classList.add('hidden');
@@ -1710,43 +1846,91 @@ function graphHandleKey(e) {
 
 function detectShapeRequest(text) {
   const t = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // Triángulos
   if (t.includes('triangulo rectangulo') || t.includes('triangulo recto'))
     return { type:'shape', shape:'triangulo rectangulo', title:'Triángulo Rectángulo', labels:['Cateto a','Hipotenusa','Cateto b'], values:[3,5,4], rightAngle:true, color:'#00ffc8' };
   if (t.includes('triangulo equilatero'))
     return { type:'shape', shape:'triangulo equilatero', title:'Triángulo Equilátero', labels:['Lado a','Lado b','Lado c'], values:[5,5,5], rightAngle:false, color:'#69f0ae' };
   if (t.includes('triangulo isosceles'))
     return { type:'shape', shape:'triangulo isosceles', title:'Triángulo Isósceles', labels:['Lado a','Base','Lado c'], values:[5,4,5], rightAngle:false, color:'#6b8aff' };
-  if (t.includes('triangulo'))
+  if (t.includes('triangulo') || t.includes('3 lados'))
     return { type:'shape', shape:'triangulo', title:'Triángulo', labels:['Lado a','Lado b','Lado c'], values:[4,5,6], rightAngle:false, color:'#00ffc8' };
-  if (t.includes('cuadrado'))
+
+  // Cuadrado
+  if (t.includes('cuadrado') || t.includes('cuadro') || (t.includes('4 lados') && t.includes('igual')))
     return { type:'shape', shape:'cuadrado', title:'Cuadrado', labels:['Lado'], values:[5,5], color:'#6b8aff' };
-  if (t.includes('rectangulo'))
+
+  // Rectángulo
+  if (t.includes('rectangulo') || t.includes('rectangular'))
     return { type:'shape', shape:'rectangulo', title:'Rectángulo', labels:['Base','Altura'], values:[8,5], color:'#6b8aff' };
-  if (t.includes('circulo'))
+
+  // Círculo
+  if (t.includes('circulo') || t.includes('circunferencia') || t.includes('redondo') || t.includes('esfera'))
     return { type:'shape', shape:'circulo', title:'Círculo', labels:['Radio'], values:[5], color:'#ff6bf0' };
-  if (t.includes('pentagono'))
+
+  // Pentágono
+  if (t.includes('pentagono') || t.includes('5 lados'))
     return { type:'shape', shape:'pentagono', title:'Pentágono Regular', labels:['Lado'], values:[5], color:'#69f0ae' };
-  if (t.includes('hexagono'))
+
+  // Hexágono
+  if (t.includes('hexagono') || t.includes('6 lados'))
     return { type:'shape', shape:'hexagono', title:'Hexágono Regular', labels:['Lado'], values:[5], color:'#ffd700' };
-  // Extract custom values if present (e.g., "triangulo de lados 3 4 5")
+
+  // Octágono
+  if (t.includes('octagono') || t.includes('8 lados'))
+    return { type:'shape', shape:'octagono', title:'Octágono Regular', labels:['Lado'], values:[5], color:'#ff9f43' };
+
+  // Rombo
+  if (t.includes('rombo'))
+    return { type:'shape', shape:'rombo', title:'Rombo', labels:['Diagonal mayor','Diagonal menor'], values:[8,5], color:'#ee5a24' };
+
+  // Trapecio
+  if (t.includes('trapecio'))
+    return { type:'shape', shape:'trapecio', title:'Trapecio', labels:['Base mayor','Base menor','Altura'], values:[10,6,5], color:'#6c5ce7' };
+
+  // Estrella
+  if (t.includes('estrella'))
+    return { type:'shape', shape:'estrella', title:'Estrella', labels:['Puntas'], values:[5], color:'#ffd700' };
+
+  // Óvalo/elipse
+  if (t.includes('ovalo') || t.includes('elipse'))
+    return { type:'shape', shape:'ovalo', title:'Óvalo / Elipse', labels:['Semieje mayor','Semieje menor'], values:[7,4], color:'#e056fd' };
+
+  // Gráfico circular/pastel (no es shape, es pie chart)
+  if (t.includes('circular') || t.includes('pastel') || t.includes('torta') || t.includes('pie'))
+    return { type:'pie_chart' };
+
+  // Gráfico de línea
+  if (t.includes('linea') || t.includes('progreso') || t.includes('tendencia'))
+    return { type:'line_chart' };
+
+  // Detección genérica: si dice "dibuja", "figura", "forma geometrica" sin especificar
+  if ((t.includes('dibuja') || t.includes('figura') || t.includes('forma')) && !t.includes('grafico') && !t.includes('barra'))
+    return null; // Let it pass to AI but don't default to bar
+
   return null;
 }
 
 function extractShapeValues(text, shapeData) {
   const nums = text.match(/\d+(\.\d+)?/g);
   if (nums && nums.length > 0) {
-    const parsed = nums.map(Number);
-    if (shapeData.shape.includes('triangulo') && parsed.length >= 3) {
+    const parsed = nums.map(Number).filter(n => n > 0 && n < 1000);
+    const s = shapeData.shape;
+    if (s.includes('triangulo') && parsed.length >= 3) {
       shapeData.values = parsed.slice(0, 3);
       if (shapeData.rightAngle) {
-        // Sort so hypotenuse is correct (largest value)
         const sorted = [...shapeData.values].sort((a, b) => a - b);
-        shapeData.values = [sorted[0], sorted[2], sorted[1]]; // cateto a, hipotenusa, cateto b
+        shapeData.values = [sorted[0], sorted[2], sorted[1]];
       }
-    } else if (shapeData.shape.includes('rect') && parsed.length >= 2) {
+    } else if (s.includes('trapecio') && parsed.length >= 3) {
+      shapeData.values = parsed.slice(0, 3);
+    } else if ((s.includes('rect') || s.includes('rombo') || s.includes('ovalo') || s.includes('elipse')) && parsed.length >= 2) {
       shapeData.values = [parsed[0], parsed[1]];
-    } else if (shapeData.shape.includes('cuadra') && parsed.length >= 1) {
+    } else if (s.includes('cuadra') && parsed.length >= 1) {
       shapeData.values = [parsed[0], parsed[0]];
+    } else if (s.includes('estrella') && parsed.length >= 1) {
+      shapeData.values = [Math.max(3, Math.min(12, Math.round(parsed[0])))];
     } else if (parsed.length >= 1) {
       shapeData.values = [parsed[0]];
     }
@@ -1763,7 +1947,20 @@ async function graphSend(text) {
 
   // Detect shape requests client-side (don't rely on AI for JSON format)
   let shapeData = detectShapeRequest(text);
-  if (shapeData) {
+
+  // Handle pie/line chart requests using diary data
+  if (shapeData && shapeData.type === 'pie_chart') {
+    const diaryChart = buildDiaryPieChart();
+    if (diaryChart) { drawPieChart(diaryChart); }
+    shapeData = null; // Let AI explain
+  }
+  if (shapeData && shapeData.type === 'line_chart') {
+    const diaryChart = buildDiaryLineChart();
+    if (diaryChart) { drawLineChart(diaryChart); }
+    shapeData = null;
+  }
+
+  if (shapeData && shapeData.type === 'shape') {
     shapeData = extractShapeValues(text, shapeData);
     drawShape(shapeData);
 
@@ -1882,6 +2079,28 @@ Reglas:
     graphStreaming = false;
     scrollGraphChat();
   }
+}
+
+function buildDiaryPieChart() {
+  const labels = [], values = [];
+  state.subjects.forEach(sub => {
+    const count = (state.entries[sub.id] || []).length;
+    if (count > 0) { labels.push(sub.emoji + ' ' + sub.name); values.push(count); }
+  });
+  if (labels.length === 0) return null;
+  return { type: 'pie', title: 'Entradas por Materia', labels, values };
+}
+
+function buildDiaryLineChart() {
+  const dateMap = {};
+  state.subjects.forEach(sub => {
+    (state.entries[sub.id] || []).forEach(e => {
+      dateMap[e.date] = (dateMap[e.date] || 0) + 1;
+    });
+  });
+  const sorted = Object.entries(dateMap).sort((a, b) => a[0].localeCompare(b[0]));
+  if (sorted.length === 0) return null;
+  return { type: 'line', title: 'Actividad por Día', labels: sorted.map(s => s[0]), values: sorted.map(s => s[1]) };
 }
 
 function buildGraphDiaryData() {
