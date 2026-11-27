@@ -1,8 +1,9 @@
-const CACHE_NAME = 'mi-diario-v6';
+const CACHE_NAME = 'mi-diario-v8';
 const ASSETS = [
   '/',
   '/index.html',
   '/styles.css',
+  '/lang.js',
   '/app.js',
   '/icon-192.png',
   '/icon-512.png',

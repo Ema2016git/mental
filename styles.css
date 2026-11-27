@@ -1369,6 +1369,31 @@ body {
 .badge-card strong { display: block; font-size: 0.8rem; color: var(--dark-text); }
 .badge-card small { display: block; font-size: 0.65rem; color: var(--dark-text2); margin-top: 2px; }
 
+/* =============================================
+   LANGUAGE SELECTOR
+   ============================================= */
+#nav-lang-slot { margin-left: auto; display: flex; align-items: center; }
+.lang-selector { position: relative; }
+.lang-btn {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px; padding: 6px 10px; font-size: 1.2rem; cursor: pointer;
+  transition: all 0.2s; line-height: 1;
+}
+.lang-btn:hover { background: rgba(108,92,231,0.3); transform: scale(1.1); }
+.lang-menu {
+  position: absolute; top: 100%; right: 0; margin-top: 6px;
+  background: var(--dark-card); border: 1px solid rgba(108,92,231,0.4);
+  border-radius: 12px; overflow: hidden; min-width: 150px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.5); z-index: 9999;
+}
+.lang-option {
+  display: block; width: 100%; padding: 10px 16px; text-align: left;
+  background: none; border: none; color: var(--dark-text); font-size: 0.9rem;
+  cursor: pointer; transition: background 0.15s;
+}
+.lang-option:hover { background: rgba(108,92,231,0.2); }
+.lang-option.active { background: rgba(108,92,231,0.3); font-weight: 700; }
+
 /* Entry actions */
 .entry-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
 

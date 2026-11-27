@@ -20,6 +20,13 @@ function rotateGroqKey() {
 }
 function setGroqKey(k) { localStorage.setItem('groq_api_key', k.trim()); }
 
+function getBaseSubjects() {
+  return [
+    { id: 'lenguaje',    name: t('subj_language'),  emoji: '📝', color: '#FF6B6B',  isBase: true },
+    { id: 'matematicas', name: t('subj_math'),      emoji: '🔢', color: '#4ECDC4',  isBase: true },
+    { id: 'historia',    name: t('subj_history'),   emoji: '🏛️', color: '#FFB347',  isBase: true },
+  ];
+}
 const BASE_SUBJECTS = [
   { id: 'lenguaje',    name: 'Lenguaje',     emoji: '📝', color: '#FF6B6B',  isBase: true },
   { id: 'matematicas', name: 'Matemáticas',  emoji: '🔢', color: '#4ECDC4',  isBase: true },
@@ -40,28 +47,35 @@ let aiCurrentController = null;
 // =============================================
 //  GAMIFICACIÓN
 // =============================================
-const LEVELS = [
-  { name: 'Novato', xp: 0, emoji: '🌱' },
-  { name: 'Aprendiz', xp: 50, emoji: '📗' },
-  { name: 'Estudioso', xp: 150, emoji: '📘' },
-  { name: 'Dedicado', xp: 300, emoji: '⭐' },
-  { name: 'Experto', xp: 500, emoji: '🏅' },
-  { name: 'Maestro', xp: 800, emoji: '🏆' },
-  { name: 'Genio', xp: 1200, emoji: '🧠' },
-  { name: 'Leyenda', xp: 2000, emoji: '👑' },
+const LEVEL_KEYS = ['level_novice','level_apprentice','level_studious','level_dedicated','level_expert','level_master','level_genius','level_legend'];
+const LEVELS_DATA = [
+  { key: 'level_novice', xp: 0, emoji: '🌱' },
+  { key: 'level_apprentice', xp: 50, emoji: '📗' },
+  { key: 'level_studious', xp: 150, emoji: '📘' },
+  { key: 'level_dedicated', xp: 300, emoji: '⭐' },
+  { key: 'level_expert', xp: 500, emoji: '🏅' },
+  { key: 'level_master', xp: 800, emoji: '🏆' },
+  { key: 'level_genius', xp: 1200, emoji: '🧠' },
+  { key: 'level_legend', xp: 2000, emoji: '👑' },
 ];
-const BADGES = [
-  { id: 'first_entry', name: 'Primera Entrada', emoji: '✍️', desc: 'Escribe tu primera entrada', check: g => g.totalEntries >= 1 },
-  { id: 'five_entries', name: 'Escritor', emoji: '📝', desc: 'Escribe 5 entradas', check: g => g.totalEntries >= 5 },
-  { id: 'twenty_entries', name: 'Autor', emoji: '📚', desc: 'Escribe 20 entradas', check: g => g.totalEntries >= 20 },
-  { id: 'streak_3', name: 'Racha de 3', emoji: '🔥', desc: '3 días seguidos escribiendo', check: g => g.streak >= 3 },
-  { id: 'streak_7', name: 'Semana Perfecta', emoji: '💪', desc: '7 días seguidos escribiendo', check: g => g.streak >= 7 },
-  { id: 'streak_30', name: 'Mes Imparable', emoji: '🚀', desc: '30 días seguidos escribiendo', check: g => g.streak >= 30 },
-  { id: 'quiz_ace', name: 'As del Quiz', emoji: '💯', desc: 'Saca 100% en un ejercicio', check: g => g.perfectQuiz },
-  { id: 'five_subjects', name: 'Multidisciplina', emoji: '🌈', desc: 'Escribe en 5 materias distintas', check: g => g.activeSubjects >= 5 },
-  { id: 'ai_chat', name: 'Amigo de IA', emoji: '🤖', desc: 'Envía 10 mensajes a la IA', check: g => g.aiMessages >= 10 },
-  { id: 'shape_draw', name: 'Artista Geométrico', emoji: '📐', desc: 'Dibuja 5 figuras', check: g => g.shapesDrawn >= 5 },
+const LEVELS = LEVELS_DATA.map(l => ({ ...l, get name() { return t(l.key); } }));
+const BADGES_DATA = [
+  { id: 'first_entry', nameKey: 'badge_first_entry', emoji: '✍️', descKey: 'badge_desc_first', check: g => g.totalEntries >= 1 },
+  { id: 'five_entries', nameKey: 'badge_writer', emoji: '📝', descKey: 'badge_desc_5', check: g => g.totalEntries >= 5 },
+  { id: 'twenty_entries', nameKey: 'badge_author', emoji: '📚', descKey: 'badge_desc_20', check: g => g.totalEntries >= 20 },
+  { id: 'streak_3', nameKey: 'badge_streak3', emoji: '🔥', descKey: 'badge_desc_s3', check: g => g.streak >= 3 },
+  { id: 'streak_7', nameKey: 'badge_streak7', emoji: '💪', descKey: 'badge_desc_s7', check: g => g.streak >= 7 },
+  { id: 'streak_30', nameKey: 'badge_streak30', emoji: '🚀', descKey: 'badge_desc_s30', check: g => g.streak >= 30 },
+  { id: 'quiz_ace', nameKey: 'badge_quiz_ace', emoji: '💯', descKey: 'badge_desc_quiz', check: g => g.perfectQuiz },
+  { id: 'five_subjects', nameKey: 'badge_multi', emoji: '🌈', descKey: 'badge_desc_multi', check: g => g.activeSubjects >= 5 },
+  { id: 'ai_chat', nameKey: 'badge_ai_friend', emoji: '🤖', descKey: 'badge_desc_ai', check: g => g.aiMessages >= 10 },
+  { id: 'shape_draw', nameKey: 'badge_artist', emoji: '📐', descKey: 'badge_desc_art', check: g => g.shapesDrawn >= 5 },
 ];
+const BADGES = BADGES_DATA.map(b => ({
+  ...b,
+  get name() { return t(b.nameKey); },
+  get desc() { return t(b.descKey); },
+}));
 
 function loadGameData() {
   const d = JSON.parse(localStorage.getItem('game_data') || '{}');
@@ -148,7 +162,7 @@ function showXPToast(amount, reason) {
 function showBadgeToast(badge) {
   const toast = document.createElement('div');
   toast.className = 'badge-toast';
-  toast.innerHTML = `<div class="badge-toast-icon">${badge.emoji}</div><div><strong>¡Nueva insignia!</strong><br>${badge.name}</div>`;
+  toast.innerHTML = `<div class="badge-toast-icon">${badge.emoji}</div><div><strong>${t('gm_new_badge')}</strong><br>${badge.name}</div>`;
   document.body.appendChild(toast);
   setTimeout(() => toast.classList.add('show'), 10);
   setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, 3500);
@@ -161,14 +175,14 @@ function updateGameUI() {
   const bar = document.getElementById('user-bar');
   if (!bar || !state.currentUser) return;
   const pct = next ? Math.min(100, ((g.xp - level.xp) / (next.xp - level.xp)) * 100) : 100;
-  const streakText = g.streak > 0 ? `🔥 ${g.streak} día${g.streak > 1 ? 's' : ''}` : '';
+  const streakText = g.streak > 0 ? `🔥 ${g.streak} ${t('days')}` : '';
   bar.innerHTML = `
     <div class="game-bar">
       <span class="game-level">${level.emoji} ${level.name}</span>
       <div class="game-xp-bar"><div class="game-xp-fill" style="width:${pct}%"></div></div>
       <span class="game-xp-text">${g.xp} XP</span>
       <span class="game-streak">${streakText}</span>
-      <button class="game-badges-btn" onclick="showBadgesModal()" title="Ver insignias">🏅 ${g.badges.length}/${BADGES.length}</button>
+      <button class="game-badges-btn" onclick="showBadgesModal()" title="${t('gm_view_badges')}">🏅 ${g.badges.length}/${BADGES.length}</button>
     </div>
   `;
 }
@@ -187,8 +201,8 @@ function showBadgesModal() {
     <div class="modal-content" style="max-width:460px;max-height:80vh;overflow-y:auto;">
       <button class="modal-close" onclick="document.getElementById('badges-modal').remove()">&times;</button>
       <h2 style="text-align:center;">${level.emoji} ${level.name}</h2>
-      <p style="text-align:center;color:var(--dark-text2);">${g.xp} XP · Racha: 🔥 ${g.streak} días${next ? ` · Siguiente: ${next.emoji} ${next.name} (${next.xp} XP)` : ' · ¡Nivel máximo!'}</p>
-      <h3 style="margin-top:16px;">🏅 Insignias (${g.badges.length}/${BADGES.length})</h3>
+      <p style="text-align:center;color:var(--dark-text2);">${g.xp} XP · ${t('gm_streak')} 🔥 ${g.streak} ${t('days')}${next ? ` · ${t('gm_next_level')} ${next.emoji} ${next.name} (${next.xp} XP)` : ` · ${t('gm_max_level')}`}</p>
+      <h3 style="margin-top:16px;">🏅 ${t('gm_badges')} (${g.badges.length}/${BADGES.length})</h3>
       <div class="badges-grid">
         ${BADGES.map(b => {
           const unlocked = g.badges.includes(b.id);
@@ -208,6 +222,11 @@ function showBadgesModal() {
 //  INICIALIZACIÓN
 // =============================================
 document.addEventListener('DOMContentLoaded', () => {
+  // Insert language selector
+  const langSlot = document.getElementById('nav-lang-slot');
+  if (langSlot) langSlot.appendChild(buildLangSelector());
+  applyLang();
+
   loadState();
   setupEventListeners();
   render();
@@ -307,18 +326,18 @@ function renderHeader() {
     bar.innerHTML = `
       <div class="user-info">
         <span class="user-avatar">👤</span>
-        <span>¡Hola, <strong>${state.currentUser.name}</strong>!</span>
+        <span>${t('hello_user', { name: state.currentUser.name })}</span>
       </div>
-      <button class="btn btn-small btn-secondary" onclick="handleLogout()">🚪 Cerrar Sesión</button>`;
-    document.getElementById('welcome-text').textContent = `👋 ¡Hola, ${state.currentUser.name}!`;
-    document.getElementById('welcome-sub').textContent = `¡Escribe lo que aprendiste hoy! Llevas ${getTotalEntries()} aprendizajes guardados.`;
+      <button class="btn btn-small btn-secondary" onclick="handleLogout()">${t('btn_logout')}</button>`;
+    document.getElementById('welcome-text').textContent = t('welcome_user', { name: state.currentUser.name });
+    document.getElementById('welcome-sub').textContent = t('entries_saved', { n: getTotalEntries() });
   } else {
     bar.innerHTML = `
-      <span style="color:var(--text-light);font-size:0.9rem;">¿Ya tienes cuenta?</span>
-      <button class="btn btn-small btn-primary" onclick="openAuthModal()">🔑 Iniciar Sesión</button>
-      <button class="btn btn-small btn-secondary" onclick="openAuthModal('register')">🌟 Crear Cuenta</button>`;
-    document.getElementById('welcome-text').textContent = '👋 ¡Hola! Bienvenido a tu Diario Escolar';
-    document.getElementById('welcome-sub').textContent = 'Escribe cada día lo que aprendes. ¡Crea una cuenta para agregar más materias!';
+      <span style="color:var(--text-light);font-size:0.9rem;">${t('have_account')}</span>
+      <button class="btn btn-small btn-primary" onclick="openAuthModal()">${t('btn_signin')}</button>
+      <button class="btn btn-small btn-secondary" onclick="openAuthModal('register')">${t('btn_signup')}</button>`;
+    document.getElementById('welcome-text').textContent = t('welcome_hello');
+    document.getElementById('welcome-sub').textContent = t('welcome_sub');
   }
 }
 
@@ -333,11 +352,12 @@ function renderSubjectsGrid() {
     card.style.setProperty('--subject-color', subject.color);
     card.onclick = (e) => { if (!e.target.classList.contains('delete-subject')) openSubject(subject.id); };
     let del = '';
-    if (!subject.isBase && state.currentUser) del = `<button class="delete-subject" onclick="deleteSubject('${subject.id}')" title="Eliminar">🗑️</button>`;
+    if (!subject.isBase && state.currentUser) del = `<button class="delete-subject" onclick="deleteSubject('${subject.id}')" title="🗑️">🗑️</button>`;
+    const displayName = subject.isBase ? getBaseSubjects().find(b => b.id === subject.id)?.name || subject.name : subject.name;
     card.innerHTML = `${del}<span class="subject-emoji">${subject.emoji}</span>
-      <div class="subject-name">${subject.name}</div>
-      <div class="subject-entries">📝 ${count} ${count === 1 ? 'aprendizaje' : 'aprendizajes'}</div>
-      ${last ? `<div class="subject-last">Último: ${formatDate(last.date)}</div>` : '<div class="subject-last">¡Sin entradas aún! 🌱</div>'}`;
+      <div class="subject-name">${displayName}</div>
+      <div class="subject-entries">📝 ${count} ${count === 1 ? t('learning') : t('learnings')}</div>
+      ${last ? `<div class="subject-last">${t('last_entry')} ${formatDate(last.date)}</div>` : `<div class="subject-last">${t('no_entries_yet')}</div>`}`;
     grid.appendChild(card);
   });
 }
@@ -363,14 +383,15 @@ function showSubjectView(id) {
   const sub = state.subjects.find(s => s.id === id);
   if (!sub) return;
   const entries = state.entries[id] || [];
+  const displayName = sub.isBase ? getBaseSubjects().find(b => b.id === sub.id)?.name || sub.name : sub.name;
   document.getElementById('subject-header').innerHTML = `
     <span class="subject-emoji">${sub.emoji}</span>
     <div class="subject-info">
-      <h2>${sub.name}</h2>
-      <p>${entries.length} aprendizaje${entries.length !== 1 ? 's' : ''} registrado${entries.length !== 1 ? 's' : ''}</p>
+      <h2>${displayName}</h2>
+      <p>${entries.length} ${entries.length !== 1 ? t('learnings') : t('learning')} ${entries.length !== 1 ? t('registered_p') : t('registered')}</p>
       <div class="stats-bar">
-        <div class="stat-item">📅 ${getUniqueDays(id)} días</div>
-        <div class="stat-item">🔥 ${getStreak(id)} días seguidos</div>
+        <div class="stat-item">📅 ${getUniqueDays(id)} ${t('days')}</div>
+        <div class="stat-item">🔥 ${getStreak(id)} ${t('consecutive_days')}</div>
       </div>
     </div>`;
   renderEntries(id);
@@ -380,7 +401,7 @@ function renderEntries(id) {
   const container = document.getElementById('entries-container');
   const entries = (state.entries[id] || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
   if (!entries.length) {
-    container.innerHTML = `<div class="no-entries"><span class="no-entries-emoji">📭</span>¡Aún no tienes aprendizajes aquí!<br>Escribe lo que aprendiste hoy 👆</div>`;
+    container.innerHTML = `<div class="no-entries"><span class="no-entries-emoji">📭</span>${t('no_learnings')}<br>${t('write_above')}</div>`;
     return;
   }
   const color = state.subjects.find(s => s.id === id)?.color || 'var(--primary)';
@@ -411,14 +432,14 @@ function handleAddEntry(e) {
   e.preventDefault();
   const date = document.getElementById('entry-date').value;
   const text = document.getElementById('entry-text').value.trim();
-  if (!text) { showToast('✏️ Escribe algo que hayas aprendido'); return; }
+  if (!text) { showToast(t('toast_write_sth')); return; }
   if (!state.entries[state.currentSubject]) state.entries[state.currentSubject] = [];
   state.entries[state.currentSubject].push({ date, text });
   saveState();
   document.getElementById('entry-text').value = '';
   showSubjectView(state.currentSubject);
-  showToast('✅ ¡Aprendizaje guardado!');
-  addXP(10, 'Entrada en diario');
+  showToast(t('toast_entry_saved'));
+  addXP(10, t('xp_diary_entry'));
   updateStreak();
 }
 
@@ -430,12 +451,12 @@ function addEntryFromAI(subjectId, text, date) {
   }
   state.entries[subjectId].push({ date, text });
   saveState();
-  addXP(10, 'Entrada con IA');
+  addXP(10, t('xp_ai_entry'));
   updateStreak();
 }
 
 function deleteEntry(subjectId, sortedIdx) {
-  if (!confirm('¿Seguro que quieres borrar este aprendizaje?')) return;
+  if (!confirm(t('confirm_del_entry'))) return;
   const sorted = [...(state.entries[subjectId] || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
   const target = sorted[sortedIdx];
   const realIdx = state.entries[subjectId].indexOf(target);
@@ -443,7 +464,7 @@ function deleteEntry(subjectId, sortedIdx) {
     state.entries[subjectId].splice(realIdx, 1);
     saveState();
     showSubjectView(subjectId);
-    showToast('🗑️ Aprendizaje eliminado');
+    showToast(t('toast_entry_del'));
   }
 }
 
@@ -458,26 +479,26 @@ function handleAddSubject(e) {
   const name = document.getElementById('new-subject-name').value.trim();
   const emoji = document.querySelector('#emoji-picker .emoji-option.selected')?.dataset.emoji || '📗';
   const color = document.querySelector('#color-picker .color-option.selected')?.dataset.color || '#4CAF50';
-  if (!name) { showToast('✏️ Escribe el nombre de la materia'); return; }
-  if (state.subjects.find(s => s.name.toLowerCase() === name.toLowerCase())) { showToast('⚠️ Ya tienes esa materia'); return; }
+  if (!name) { showToast(t('toast_subject_name')); return; }
+  if (state.subjects.find(s => s.name.toLowerCase() === name.toLowerCase())) { showToast(t('toast_subject_dup')); return; }
   const id = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_áéíóúñ]/g, '') + '_' + Date.now();
   state.subjects.push({ id, name, emoji, color, isBase: false });
   state.entries[id] = [];
   saveState();
   closeSubjectModal();
   renderSubjectsGrid();
-  showToast(`✅ ¡${name} agregada!`);
+  showToast(t('toast_subject_added', { name }));
 }
 
 function deleteSubject(id) {
   const sub = state.subjects.find(s => s.id === id);
-  if (!sub || sub.isBase) { showToast('⚠️ No puedes eliminar una materia base'); return; }
-  if (!confirm(`¿Eliminar "${sub.name}" y todos sus aprendizajes?`)) return;
+  if (!sub || sub.isBase) { showToast(t('toast_base_subject')); return; }
+  if (!confirm(t('confirm_del_subj', { name: sub.name }))) return;
   state.subjects = state.subjects.filter(s => s.id !== id);
   delete state.entries[id];
   saveState();
   if (state.currentSubject === id) goBack(); else renderSubjectsGrid();
-  showToast(`🗑️ ${sub.name} eliminada`);
+  showToast(t('toast_subject_del', { name: sub.name }));
 }
 
 // =============================================
@@ -497,11 +518,11 @@ function handleRegister(e) {
   const age = document.getElementById('reg-age').value;
   const pass = document.getElementById('reg-pass').value;
   const pass2 = document.getElementById('reg-pass2').value;
-  if (!name || !age || !pass) { showToast('⚠️ Completa todos los campos'); return; }
-  if (pass !== pass2) { showToast('⚠️ Las contraseñas no coinciden'); return; }
-  if (pass.length < 4) { showToast('⚠️ Mínimo 4 caracteres'); return; }
+  if (!name || !age || !pass) { showToast(t('toast_complete_all')); return; }
+  if (pass !== pass2) { showToast(t('toast_pass_mismatch')); return; }
+  if (pass.length < 4) { showToast(t('toast_pass_short')); return; }
   const users = getUsers();
-  if (users.find(u => u.name.toLowerCase() === name.toLowerCase())) { showToast('⚠️ Ese nombre ya existe'); return; }
+  if (users.find(u => u.name.toLowerCase() === name.toLowerCase())) { showToast(t('toast_name_exists')); return; }
   const newUser = { name, age: parseInt(age), password: pass };
   users.push(newUser);
   saveUsers(users);
@@ -512,7 +533,7 @@ function handleRegister(e) {
   saveState();
   closeAuthModal();
   render();
-  showToast(`🎉 ¡Bienvenido, ${name}!`);
+  showToast(t('toast_welcome', { name }));
 }
 
 function handleLogin(e) {
@@ -520,13 +541,13 @@ function handleLogin(e) {
   const name = document.getElementById('login-user').value.trim();
   const pass = document.getElementById('login-pass').value;
   const user = getUsers().find(u => u.name.toLowerCase() === name.toLowerCase() && u.password === pass);
-  if (!user) { showToast('❌ Nombre o contraseña incorrectos'); return; }
+  if (!user) { showToast(t('toast_login_fail')); return; }
   state.currentUser = user;
   localStorage.setItem('diary_session', JSON.stringify(user));
   loadState();
   closeAuthModal();
   render();
-  showToast(`👋 ¡Hola, ${user.name}!`);
+  showToast(t('toast_hello', { name: user.name }));
 }
 
 function handleLogout() {
@@ -538,7 +559,7 @@ function handleLogout() {
   document.getElementById('subjects-grid').classList.remove('hidden');
   document.getElementById('welcome-section').classList.remove('hidden');
   render();
-  showToast('👋 ¡Hasta pronto!');
+  showToast(t('toast_goodbye'));
 }
 
 function migrateGuestData() {
@@ -580,8 +601,10 @@ function getSubjectsList() {
 
 function getAiSystemPrompt() {
   const diary = buildDiaryContext();
+  const langNames = { es: 'español', en: 'English', pt: 'português', fr: 'français' };
+  const respLang = langNames[currentLang] || 'español';
   return `Te llamas "Mi IA Local". Eres un asistente educativo amigable para niños de escuela.
-Responde siempre en español de forma clara, directa y útil.
+Responde siempre en ${respLang} de forma clara, directa y útil.
 Sé motivador, usa ejemplos sencillos y felicita al estudiante por sus avances.
 Si no sabes algo, dilo honestamente.
 Puedes ayudar con tareas, explicar conceptos, hacer resúmenes y quizzes.
@@ -648,8 +671,8 @@ async function aiCheckStatus() {
       ollamaAvailable = true;
       dot.classList.add('online');
       dot.classList.remove('offline');
-      txt.textContent = 'Conectado (Local)';
-      txt.title = 'Usando Ollama local';
+      txt.textContent = t('ai_local');
+      txt.title = 'Ollama local';
       hideOllamaBanner();
       return;
     }
@@ -658,14 +681,14 @@ async function aiCheckStatus() {
   if (getGroqKey()) {
     dot.classList.add('online');
     dot.classList.remove('offline');
-    txt.textContent = 'Conectado (Nube)';
-    txt.title = 'Usando Groq en la nube (Llama3)';
+    txt.textContent = t('ai_cloud');
+    txt.title = 'Groq Cloud';
     hideOllamaBanner();
   } else {
     dot.classList.remove('online');
     dot.classList.add('offline');
-    txt.textContent = 'Desconectado';
-    txt.title = 'Sin Ollama local ni API key de Groq';
+    txt.textContent = t('ai_offline');
+    txt.title = '';
     showOllamaBanner();
   }
 }
@@ -678,12 +701,12 @@ function showOllamaBanner() {
   banner.innerHTML = `
     <span class="ollama-banner-icon">⚠️</span>
     <div class="ollama-banner-text">
-      <h4>IA Desconectada</h4>
-      <p>Tienes 2 opciones para activar la IA:</p>
-      <p><strong>Opción 1:</strong> Abre <strong>Ollama</strong> en tu PC (<code>ollama serve</code>)</p>
-      <p><strong>Opción 2:</strong> Usa IA en la nube gratis con Groq:</p>
-      <button class="btn-retry" onclick="openGroqSetup()" style="background:#6c5ce7">🔑 Configurar Groq (gratis)</button>
-      <button class="btn-retry" onclick="this.textContent='Verificando...';aiCheckStatus();aiLoadModels();setTimeout(()=>{const b=document.getElementById('ollama-banner');if(document.querySelector('.ai-status-dot.online')&&b)b.remove();else if(this)this.textContent='🔄 Reintentar';},3500)">🔄 Reintentar conexión</button>
+      <h4>${t('ai_disconnected_title')}</h4>
+      <p>${t('ai_option1')}</p>
+      <p><strong>1:</strong> ${t('ai_option_ollama')}</p>
+      <p><strong>2:</strong> ${t('ai_option_groq')}</p>
+      <button class="btn-retry" onclick="openGroqSetup()" style="background:#6c5ce7">${t('ai_config_groq')}</button>
+      <button class="btn-retry" onclick="this.textContent='...';aiCheckStatus();aiLoadModels();setTimeout(()=>{const b=document.getElementById('ollama-banner');if(document.querySelector('.ai-status-dot.online')&&b)b.remove();else if(this)this.textContent='${t('ai_retry')}';},3500)">${t('ai_retry')}</button>
     </div>
   `;
   const chatArea = document.getElementById('ai-messages');
@@ -706,23 +729,23 @@ function openGroqSetup() {
   modal.innerHTML = `
     <div class="modal-content" style="max-width:440px;background:#1a1a2e;border:1px solid #6c5ce7;border-radius:16px;padding:24px;">
       <button class="modal-close" onclick="document.getElementById('groq-modal').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;">&times;</button>
-      <h2 style="color:#a29bfe;margin-bottom:12px;">🔑 Configurar Groq (Gratis)</h2>
+      <h2 style="color:#a29bfe;margin-bottom:12px;">${t('groq_title')}</h2>
       <div style="color:#ccc;font-size:0.85rem;line-height:1.5;">
-        <p><strong>Pasos:</strong></p>
+        <p><strong>${t('groq_steps')}</strong></p>
         <ol style="padding-left:20px;">
-          <li>Ve a <a href="https://console.groq.com/keys" target="_blank" style="color:#74b9ff;">console.groq.com/keys</a></li>
-          <li>Crea una cuenta gratis (puedes usar Google)</li>
-          <li>Haz clic en <strong>"Create API Key"</strong></li>
-          <li>Copia la key y pégala aquí abajo:</li>
+          <li>${t('groq_step1')} <a href="https://console.groq.com/keys" target="_blank" style="color:#74b9ff;">console.groq.com/keys</a></li>
+          <li>${t('groq_step2')}</li>
+          <li>${t('groq_step3')} <strong>"Create API Key"</strong></li>
+          <li>${t('groq_step4')}</li>
         </ol>
       </div>
       <input type="password" id="groq-key-input" placeholder="gsk_..." value="${currentKey}" 
         style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid #6c5ce7;background:#0d0d1a;color:#fff;font-size:0.9rem;margin:12px 0;box-sizing:border-box;">
       <div style="display:flex;gap:8px;">
-        <button onclick="saveGroqKey()" style="flex:1;padding:10px;background:#6c5ce7;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:0.9rem;">💾 Guardar</button>
-        <button onclick="document.getElementById('groq-modal').remove()" style="flex:1;padding:10px;background:#333;color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;">Cancelar</button>
+        <button onclick="saveGroqKey()" style="flex:1;padding:10px;background:#6c5ce7;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:0.9rem;">${t('groq_save')}</button>
+        <button onclick="document.getElementById('groq-modal').remove()" style="flex:1;padding:10px;background:#333;color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:0.9rem;">${t('groq_cancel')}</button>
       </div>
-      <p style="color:#888;font-size:0.7rem;margin-top:10px;text-align:center;">Tu API key se guarda solo en tu navegador (localStorage). Groq es gratis con límites generosos.</p>
+      <p style="color:#888;font-size:0.7rem;margin-top:10px;text-align:center;">${t('groq_note')}</p>
     </div>
   `;
   document.body.appendChild(modal);
@@ -732,11 +755,11 @@ function openGroqSetup() {
 function saveGroqKey() {
   const input = document.getElementById('groq-key-input');
   const key = input ? input.value.trim() : '';
-  if (!key) { showToast('❌ Escribe tu API key de Groq'); return; }
-  if (!key.startsWith('gsk_')) { showToast('⚠️ La key de Groq empieza con gsk_...'); return; }
+  if (!key) { showToast(t('groq_empty')); return; }
+  if (!key.startsWith('gsk_')) { showToast(t('groq_invalid')); return; }
   setGroqKey(key);
   document.getElementById('groq-modal')?.remove();
-  showToast('✅ API key guardada — conectando...');
+  showToast(t('groq_saved'));
   aiCheckStatus();
   aiLoadModels();
 }
@@ -770,7 +793,7 @@ async function aiLoadModels() {
 async function streamChat(messages, model, onChunk, onDone, signal) {
   const useGroq = !ollamaAvailable || model === 'groq-cloud';
   if (useGroq && !getGroqKey()) {
-    onChunk('⚠️ No hay conexión a la IA. Configura Groq (botón 🔑) o abre Ollama en tu PC.');
+    onChunk(t('ai_no_conn'));
     onDone();
     return;
   }
@@ -786,9 +809,9 @@ async function streamChat(messages, model, onChunk, onDone, signal) {
         return streamChat(messages, model, onChunk, onDone, signal);
       }
       const err = await res.text().catch(() => 'Error');
-      if (res.status === 401) onChunk('⚠️ API key de Groq inválida. Reconfigúrala con el botón ⚙️.');
-      else if (res.status === 429) onChunk('⚠️ Límite de Groq alcanzado. Espera un momento e intenta de nuevo.');
-      else onChunk('⚠️ Error de Groq: ' + err);
+      if (res.status === 401) onChunk(t('ai_invalid_key'));
+      else if (res.status === 429) onChunk(t('ai_rate_limit'));
+      else onChunk(t('ai_error_groq') + err);
       onDone();
       return;
     }
@@ -896,7 +919,7 @@ async function aiSendMessage() {
   aiMessages.push({ role: 'user', content: text });
   aiAppendBubble('user', text);
   const g = loadGameData(); g.aiMessages = (g.aiMessages || 0) + 1; saveGameData(g);
-  if (aiMessages.length <= 2) addXP(5, 'Chat con IA');
+  if (aiMessages.length <= 2) addXP(5, t('xp_ai_chat'));
   input.value = '';
   input.style.height = 'auto';
 
@@ -939,7 +962,7 @@ async function aiSendMessage() {
       const savedDiv = document.createElement('div');
       savedDiv.className = 'ai-saved-entries';
       savedDiv.innerHTML = `
-        <div class="ai-saved-header">✅ Guardado en tu diario:</div>
+        <div class="ai-saved-header">${t('ai_saved_header')}</div>
         ${savedEntries.map(e => `
           <div class="ai-saved-item">
             <span>${e.subject.emoji}</span>
@@ -953,7 +976,7 @@ async function aiSendMessage() {
 
   } catch (err) {
     if (err.name === 'AbortError') {
-      contentEl.innerHTML = '<em style="color:var(--dark-text2)">Mensaje cancelado</em>';
+      contentEl.innerHTML = `<em style="color:var(--dark-text2)">${t('ai_cancelled')}</em>`;
     } else {
       contentEl.innerHTML = renderAiError(err.message);
     }
@@ -967,20 +990,20 @@ async function aiSendMessage() {
 
 function aiNewChat() {
   aiMessages = [];
-  const iaLabel = ollamaAvailable ? 'IA Local' : (getGroqKey() ? 'IA Nube (Groq)' : 'IA');
+  const iaLabel = ollamaAvailable ? t('ai_local_label') : (getGroqKey() ? t('ai_cloud_label') : t('ai_label'));
   document.getElementById('ai-messages').innerHTML = `
     <div class="ai-welcome-msg">
       <div class="ai-welcome-icon">🤖</div>
-      <h2>¡Hola! Soy tu ${iaLabel}</h2>
-      <p>Cuéntame qué aprendiste hoy y te haré preguntas para crear una entrada completa en tu diario. También puedo hacerte quizzes, explicarte temas o resumir tus aprendizajes.</p>
+      <h2>${t('ai_hello', { type: iaLabel })}</h2>
+      <p>${t('ai_welcome_msg')}</p>
       <div class="ai-suggestions">
-        <button class="ai-suggestion" onclick="aiSendSuggestion(this)">📝 Hoy en clase vimos los volcanes</button>
-        <button class="ai-suggestion" onclick="aiSendSuggestion(this)">🧠 Hazme un quiz de lo que sé</button>
-        <button class="ai-suggestion" onclick="aiSendSuggestion(this)">📖 Resúmeme mis aprendizajes</button>
-        <button class="ai-suggestion" onclick="aiSendSuggestion(this)">💡 Explícame las fracciones</button>
+        <button class="ai-suggestion" onclick="aiSendSuggestion(this)">${t('ai_sug1')}</button>
+        <button class="ai-suggestion" onclick="aiSendSuggestion(this)">${t('ai_sug2')}</button>
+        <button class="ai-suggestion" onclick="aiSendSuggestion(this)">${t('ai_sug3')}</button>
+        <button class="ai-suggestion" onclick="aiSendSuggestion(this)">${t('ai_sug4')}</button>
       </div>
     </div>`;
-  showToast('🗑️ Nuevo chat iniciado');
+  showToast(t('new_chat_toast'));
 }
 
 // =============================================
@@ -1104,7 +1127,8 @@ function setDefaultDate() {
 }
 
 function formatDate(str) {
-  return new Date(str + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const locale = window._dateLang || 'es-MX';
+  return new Date(str + 'T12:00:00').toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 
 function getLastEntry(id) {
@@ -2141,7 +2165,7 @@ async function graphSend(text) {
     shapeData = extractShapeValues(text, shapeData);
     drawShape(shapeData);
     const gd = loadGameData(); gd.shapesDrawn = (gd.shapesDrawn || 0) + 1; saveGameData(gd);
-    addXP(5, 'Figura geométrica');
+    addXP(5, t('xp_shape'));
 
     // Now ask AI for educational explanation only
     graphStreaming = true;
@@ -2319,9 +2343,10 @@ let exState = {
 function exPopulateSubjects() {
   const sel = document.getElementById('ex-subject-select');
   if (!sel) return;
-  sel.innerHTML = '<option value="all">🌟 Todas las materias</option>';
+  sel.innerHTML = `<option value="all">${t('ex_all_subjects')}</option>`;
   state.subjects.forEach(s => {
-    sel.innerHTML += `<option value="${s.id}">${s.emoji} ${s.name}</option>`;
+    const displayName = s.isBase ? getBaseSubjects().find(b => b.id === s.id)?.name || s.name : s.name;
+    sel.innerHTML += `<option value="${s.id}">${s.emoji} ${displayName}</option>`;
   });
 }
 
@@ -2340,7 +2365,7 @@ function exSelectAmount(btn) {
 async function exGenerate() {
   const btn = document.querySelector('.ex-generate-btn');
   btn.disabled = true;
-  btn.textContent = '⏳ Generando...';
+  btn.textContent = `⏳ ${t('ex_generating')}`;
 
   document.getElementById('ex-placeholder').classList.add('hidden');
   document.getElementById('ex-questions').classList.add('hidden');
@@ -2367,8 +2392,8 @@ async function exGenerate() {
     document.getElementById('ex-loading').classList.add('hidden');
     document.getElementById('ex-placeholder').classList.remove('hidden');
     btn.disabled = false;
-    btn.textContent = '🚀 Generar Ejercicios';
-    showToast('📝 Primero escribe en tu diario lo que aprendiste. ¡La IA hará ejercicios sobre eso!');
+    btn.textContent = t('ex_generate');
+    showToast(t('ex_no_data'));
     return;
   }
 
@@ -2445,10 +2470,10 @@ Recuerda: SOLO preguntas sobre lo que el estudiante ya aprendió según su diari
   } catch (err) {
     document.getElementById('ex-loading').classList.add('hidden');
     document.getElementById('ex-placeholder').classList.remove('hidden');
-    showToast('⚠️ Error al generar: ' + err.message);
+    showToast(t('ex_gen_error') + err.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = '🚀 Generar Ejercicios';
+    btn.textContent = t('ex_generate');
   }
 }
 
@@ -2486,7 +2511,7 @@ function renderExercises() {
     let body = '';
 
     if (q.type === 'multiple') {
-      typeLabel = 'Opción múltiple';
+      typeLabel = t('ex_type_multiple');
       const opts = (q.options || []).map((opt, oi) => {
         const letter = String.fromCharCode(65 + oi);
         return `<div class="ex-option" data-qi="${i}" data-oi="${oi}" onclick="exSelectOption(${i}, ${oi})">
@@ -2497,16 +2522,16 @@ function renderExercises() {
       body = `<div class="ex-options">${opts}</div>`;
 
     } else if (q.type === 'truefalse') {
-      typeLabel = 'Verdadero / Falso';
+      typeLabel = t('ex_type_tf');
       body = `<div class="ex-tf-row">
-        <button class="ex-tf-btn" data-qi="${i}" data-val="true" onclick="exSelectTF(${i}, true)">✅ Verdadero</button>
-        <button class="ex-tf-btn" data-qi="${i}" data-val="false" onclick="exSelectTF(${i}, false)">❌ Falso</button>
+        <button class="ex-tf-btn" data-qi="${i}" data-val="true" onclick="exSelectTF(${i}, true)">${t('ex_true')}</button>
+        <button class="ex-tf-btn" data-qi="${i}" data-val="false" onclick="exSelectTF(${i}, false)">${t('ex_false')}</button>
       </div>`;
 
     } else if (q.type === 'fill') {
-      typeLabel = 'Completar';
-      body = `<input type="text" class="ex-fill-input" id="ex-fill-${i}" placeholder="Escribe tu respuesta..." autocomplete="off">
-        <div class="ex-fill-answer" id="ex-fillanswer-${i}">✅ Respuesta correcta: <strong>${escapeHtml(String(q.answer))}</strong></div>`;
+      typeLabel = t('ex_type_fill');
+      body = `<input type="text" class="ex-fill-input" id="ex-fill-${i}" placeholder="${t('ex_fill_ph')}" autocomplete="off">
+        <div class="ex-fill-answer" id="ex-fillanswer-${i}">${t('ex_correct_ans')} <strong>${escapeHtml(String(q.answer))}</strong></div>`;
     }
 
     card.innerHTML = `<div class="ex-card-inner">
@@ -2515,7 +2540,7 @@ function renderExercises() {
       <div class="ex-question">${escapeHtml(q.question)}</div>
       ${body}
       <div class="ex-feedback" id="ex-fb-${i}"></div>
-      <button class="ex-check-btn" id="ex-check-${i}" onclick="exCheckAnswer(${i})">Verificar ✓</button>
+      <button class="ex-check-btn" id="ex-check-${i}" onclick="exCheckAnswer(${i})">${t('ex_check')}</button>
     </div>`;
 
     container.appendChild(card);
@@ -2547,7 +2572,7 @@ function exCheckAnswer(qi) {
   let isCorrect = false;
 
   if (q.type === 'multiple') {
-    if (exState.answers[qi] === undefined) { showToast('⚠️ Selecciona una opción'); return; }
+    if (exState.answers[qi] === undefined) { showToast(t('ex_select_option')); return; }
     isCorrect = exState.answers[qi] === q.answer;
     document.querySelectorAll(`.ex-option[data-qi="${qi}"]`).forEach(el => {
       const oi = parseInt(el.dataset.oi);
@@ -2557,7 +2582,7 @@ function exCheckAnswer(qi) {
     });
 
   } else if (q.type === 'truefalse') {
-    if (exState.answers[qi] === undefined) { showToast('⚠️ Selecciona Verdadero o Falso'); return; }
+    if (exState.answers[qi] === undefined) { showToast(t('ex_select_tf')); return; }
     isCorrect = exState.answers[qi] === q.answer;
     document.querySelectorAll(`.ex-tf-btn[data-qi="${qi}"]`).forEach(el => {
       el.classList.add('disabled');
@@ -2569,7 +2594,7 @@ function exCheckAnswer(qi) {
   } else if (q.type === 'fill') {
     const input = document.getElementById(`ex-fill-${qi}`);
     const userAnswer = input.value.trim();
-    if (!userAnswer) { showToast('⚠️ Escribe tu respuesta'); return; }
+    if (!userAnswer) { showToast(t('ex_write_answer')); return; }
     exState.answers[qi] = userAnswer;
     isCorrect = userAnswer.toLowerCase().replace(/[.,;:!?]/g, '') === String(q.answer).toLowerCase().replace(/[.,;:!?]/g, '');
     input.classList.add(isCorrect ? 'correct' : 'wrong');
@@ -2582,12 +2607,12 @@ function exCheckAnswer(qi) {
 
   const fb = document.getElementById(`ex-fb-${qi}`);
   fb.classList.add('show', isCorrect ? 'correct-fb' : 'wrong-fb');
-  fb.textContent = isCorrect ? '🎉 ¡Correcto!' : '😕 Incorrecto';
+  fb.textContent = isCorrect ? t('ex_correct_fb') : t('ex_wrong_fb');
   if (isCorrect) SFX.correct(); else SFX.wrong();
 
   const btn = document.getElementById(`ex-check-${qi}`);
   btn.disabled = true;
-  btn.textContent = isCorrect ? '✅ Correcto' : '❌ Incorrecto';
+  btn.textContent = isCorrect ? t('ex_btn_correct') : t('ex_btn_incorrect');
 
   updateScoreboard();
 
@@ -2604,8 +2629,8 @@ function updateScoreboard() {
 
   document.getElementById('ex-score-big').textContent = `${score}/${total}`;
   document.getElementById('ex-score-bar').style.width = `${total > 0 ? (score / total) * 100 : 0}%`;
-  document.getElementById('ex-score-pct').textContent = `${pct}% · ${checked}/${total} respondidas`;
-  document.getElementById('ex-score-text').textContent = `Puntos: ${score}`;
+  document.getElementById('ex-score-pct').textContent = `${pct}% · ${checked}/${total} ${t('ex_answered')}`;
+  document.getElementById('ex-score-text').textContent = t('ex_points', { n: score });
 }
 
 function showResults() {
@@ -2614,25 +2639,25 @@ function showResults() {
   results.classList.remove('hidden');
 
   const pct = Math.round((exState.score / exState.total) * 100);
-  let icon = '🏆', title = '¡Excelente!', sub = '¡Dominas este tema!';
-  if (pct < 40) { icon = '📚'; title = '¡Sigue practicando!'; sub = 'Repasa un poco más y lo lograrás.'; }
-  else if (pct < 70) { icon = '💪'; title = '¡Buen trabajo!'; sub = 'Vas por buen camino, sigue así.'; }
-  else if (pct < 90) { icon = '🌟'; title = '¡Muy bien!'; sub = '¡Casi perfecto!'; }
+  let icon = '🏆', title = t('ex_excellent'), sub = t('ex_master_sub');
+  if (pct < 40) { icon = '📚'; title = t('ex_keep_going'); sub = t('ex_keep_sub'); }
+  else if (pct < 70) { icon = '💪'; title = t('ex_good_job'); sub = t('ex_good_sub'); }
+  else if (pct < 90) { icon = '🌟'; title = t('ex_very_good'); sub = t('ex_vgood_sub'); }
 
   results.innerHTML = `
     <div class="ex-results-icon">${icon}</div>
     <div class="ex-results-title">${title}</div>
     <div class="ex-results-sub">${sub}</div>
     <div class="ex-results-score">${exState.score}/${exState.total}</div>
-    <div style="color:#7a6a50;margin-top:8px;font-size:1.1rem;">${pct}% de aciertos</div>
-    <button class="ex-retry-btn" onclick="exRetry()">🔄 Intentar de nuevo</button>
-    <button class="ex-retry-btn" onclick="exGenerate()" style="background:linear-gradient(135deg,#6b8aff,#a78bfa);margin-left:10px;">🆕 Nuevos ejercicios</button>
+    <div style="color:#7a6a50;margin-top:8px;font-size:1.1rem;">${pct}% ${t('ex_accuracy')}</div>
+    <button class="ex-retry-btn" onclick="exRetry()">${t('ex_retry')}</button>
+    <button class="ex-retry-btn" onclick="exGenerate()" style="background:linear-gradient(135deg,#6b8aff,#a78bfa);margin-left:10px;">${t('ex_new')}</button>
   `;
 
   exState.history.unshift({ date: getTodayStr(), score: exState.score, total: exState.total, pct });
   renderHistory();
   // Gamification
-  addXP(Math.round(pct / 10) + 5, 'Ejercicio completado');
+  addXP(Math.round(pct / 10) + 5, t('xp_exercise'));
   if (pct === 100) { const g = loadGameData(); g.perfectQuiz = true; saveGameData(g); }
   checkBadges();
 }
@@ -2650,7 +2675,7 @@ function renderHistory() {
   if (!list) return;
   list.innerHTML = exState.history.slice(0, 10).map(h =>
     `<div class="ex-hist-item"><strong>${h.score}/${h.total}</strong> (${h.pct}%) — ${h.date}</div>`
-  ).join('') || '<div class="ex-hist-item" style="color:#5a4a30">Sin historial aún</div>';
+  ).join('') || `<div class="ex-hist-item" style="color:#5a4a30">${t('ex_no_history')}</div>`;
 }
 
 // =============================================
@@ -2661,19 +2686,19 @@ let voiceTargetId = null;
 
 function startVoice(targetId) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { showToast('⚠️ Tu navegador no soporta entrada por voz'); return; }
+  if (!SR) { showToast(t('toast_voice_no')); return; }
 
   if (voiceRecognition) { voiceRecognition.stop(); voiceRecognition = null; return; }
 
   voiceTargetId = targetId;
   voiceRecognition = new SR();
-  voiceRecognition.lang = 'es-ES';
+  voiceRecognition.lang = window._voiceLang || 'es-ES';
   voiceRecognition.interimResults = true;
   voiceRecognition.continuous = true;
 
   const btn = document.querySelector(`[onclick="startVoice('${targetId}')"]`);
   if (btn) { btn.classList.add('voice-active'); btn.textContent = '🔴'; }
-  showToast('🎤 Escuchando... habla ahora');
+  showToast(t('toast_listening'));
 
   let finalText = '';
   const target = document.getElementById(targetId);
@@ -2691,7 +2716,7 @@ function startVoice(targetId) {
   };
 
   voiceRecognition.onerror = (e) => {
-    if (e.error !== 'no-speech') showToast('⚠️ Error de voz: ' + e.error);
+    if (e.error !== 'no-speech') showToast(t('toast_voice_err') + e.error);
     stopVoice();
   };
 
@@ -2708,7 +2733,7 @@ function stopVoice() {
 //  COMPARTIR — Generar código y compartir entradas
 // =============================================
 function generateParentCode() {
-  if (!state.currentUser) { showToast('⚠️ Inicia sesión primero'); return; }
+  if (!state.currentUser) { showToast(t('toast_login_first')); return; }
   const data = {
     user: state.currentUser,
     subjects: state.subjects,
@@ -2729,16 +2754,16 @@ function generateParentCode() {
     <div class="modal-content" style="max-width:420px;text-align:center;">
       <button class="modal-close" onclick="document.getElementById('share-modal').remove()">&times;</button>
       <div style="font-size:3rem;margin-bottom:10px;">👨‍👩‍👧</div>
-      <h2>Código para tus Padres</h2>
-      <p style="color:var(--dark-text2);font-size:0.85rem;">Comparte este código con tus padres. Ellos lo ingresan en la sección "Padres" para ver tu progreso.</p>
+      <h2>${t('parents_code_title')}</h2>
+      <p style="color:var(--dark-text2);font-size:0.85rem;">${t('parents_code_sub')}</p>
       <div style="background:var(--dark-card);border:2px dashed var(--primary);border-radius:12px;padding:16px;margin:16px 0;">
         <div style="font-size:1.5rem;font-weight:800;letter-spacing:3px;color:var(--primary);" id="parent-code-display">${shortCode}</div>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-primary" style="flex:1" onclick="copyParentCode()">📋 Copiar código</button>
+        <button class="btn btn-primary" style="flex:1" onclick="copyParentCode()">${t('parents_copy')}</button>
         <button class="btn btn-primary" style="flex:1;background:#25D366" onclick="shareWhatsApp()">💬 WhatsApp</button>
       </div>
-      <p style="font-size:0.7rem;color:#888;margin-top:12px;">El código se guarda en este dispositivo. Si borras datos del navegador, genera uno nuevo.</p>
+      <p style="font-size:0.7rem;color:#888;margin-top:12px;">${t('parents_code_note')}</p>
     </div>
   `;
   document.body.appendChild(modal);
@@ -2747,14 +2772,14 @@ function generateParentCode() {
 function copyParentCode() {
   const code = document.getElementById('parent-code-display')?.textContent;
   if (code) {
-    navigator.clipboard.writeText(code).then(() => showToast('✅ Código copiado'));
+    navigator.clipboard.writeText(code).then(() => showToast(t('toast_code_copied')));
   }
 }
 
 function shareWhatsApp() {
   const code = document.getElementById('parent-code-display')?.textContent;
   const url = window.location.origin + window.location.pathname;
-  const msg = `👨‍👩‍👧 ¡Hola! Puedes ver mi progreso escolar:\n\n1. Entra a: ${url}\n2. Ve a la sección "Padres"\n3. Ingresa este código: *${code}*\n\n📚 Mi Diario Escolar + IA`;
+  const msg = t('wa_msg', { url, code });
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
 }
 
@@ -2766,7 +2791,7 @@ function shareEntry(subjectId, entryIndex) {
   if (navigator.share) {
     navigator.share({ title: sub.name, text }).catch(() => {});
   } else {
-    navigator.clipboard.writeText(text).then(() => showToast('✅ Entrada copiada'));
+    navigator.clipboard.writeText(text).then(() => showToast(t('toast_entry_copied')));
   }
 }
 
@@ -2778,18 +2803,18 @@ let parentData = null;
 function parentLogin() {
   const input = document.getElementById('parent-code-input');
   const code = input.value.trim().toUpperCase();
-  if (!code) { showToast('⚠️ Escribe el código del estudiante'); return; }
+  if (!code) { showToast(t('parents_code_empty')); return; }
 
   const stored = localStorage.getItem('parent_share_' + code);
-  if (!stored) { showToast('❌ Código no encontrado. Pide a tu hijo/a que genere uno nuevo.'); return; }
+  if (!stored) { showToast(t('parents_code_bad')); return; }
 
   try {
     parentData = JSON.parse(decodeURIComponent(escape(atob(stored))));
     document.getElementById('parents-auth').classList.add('hidden');
     document.getElementById('parents-dashboard').classList.remove('hidden');
     renderParentDashboard();
-    showToast('✅ ¡Bienvenido/a!');
-  } catch { showToast('❌ Error al leer los datos'); }
+    showToast(t('parents_welcome'));
+  } catch { showToast(t('parents_data_err')); }
 }
 
 function parentLogout() {
@@ -2802,7 +2827,7 @@ function parentLogout() {
 function renderParentDashboard() {
   if (!parentData) return;
   const u = parentData.user;
-  const genDate = new Date(parentData.generatedAt).toLocaleDateString('es');
+  const genDate = new Date(parentData.generatedAt).toLocaleDateString(window._dateLang || 'es');
 
   document.getElementById('parents-student-info').innerHTML = `
     <div class="parent-student-card">
@@ -2832,19 +2857,19 @@ function renderParentDashboard() {
   document.getElementById('parents-stats-grid').innerHTML = `
     <div class="parent-stat-card">
       <div class="parent-stat-num">${totalEntries}</div>
-      <div class="parent-stat-label">📝 Entradas</div>
+      <div class="parent-stat-label">${t('stat_entries')}</div>
     </div>
     <div class="parent-stat-card">
       <div class="parent-stat-num">${totalSubjects}</div>
-      <div class="parent-stat-label">📚 Materias activas</div>
+      <div class="parent-stat-label">${t('stat_subjects')}</div>
     </div>
     <div class="parent-stat-card">
       <div class="parent-stat-num">${activeDays.size}</div>
-      <div class="parent-stat-label">📅 Días activos</div>
+      <div class="parent-stat-label">${t('stat_active_days')}</div>
     </div>
     <div class="parent-stat-card">
       <div class="parent-stat-num">${avgScore}%</div>
-      <div class="parent-stat-label">✏️ Prom. ejercicios</div>
+      <div class="parent-stat-label">${t('stat_avg_ex')}</div>
     </div>
   `;
 
@@ -2857,7 +2882,7 @@ function renderParentDashboard() {
       entriesHTML += `<div class="parent-entry-card"><span class="parent-entry-date">📅 ${e.date}</span><p>${escapeHtml(e.text)}</p></div>`;
     });
   });
-  document.getElementById('parents-entries').innerHTML = entriesHTML || '<p style="color:var(--dark-text2)">Sin entradas aún</p>';
+  document.getElementById('parents-entries').innerHTML = entriesHTML || `<p style="color:var(--dark-text2)">${t('parents_no_entries')}</p>`;
 
   let exHTML = '';
   if (exHistory.length > 0) {
@@ -2866,7 +2891,7 @@ function renderParentDashboard() {
       exHTML += `<div class="parent-ex-card"><strong style="color:${color}">${h.score}/${h.total}</strong> (${h.pct}%) — ${h.date}</div>`;
     });
   }
-  document.getElementById('parents-exercises').innerHTML = exHTML || '<p style="color:var(--dark-text2)">Sin ejercicios realizados aún</p>';
+  document.getElementById('parents-exercises').innerHTML = exHTML || `<p style="color:var(--dark-text2)">${t('parents_no_ex')}</p>`;
 }
 
 // =============================================
@@ -2915,12 +2940,12 @@ showBadgeToast = function(b) { SFX.badge(); _origShowBadge(b); };
 //  EXPORTAR PDF
 // =============================================
 function exportPDF() {
-  if (!state.currentUser) { showToast('⚠️ Inicia sesión primero'); return; }
+  if (!state.currentUser) { showToast(t('toast_login_first')); return; }
   const g = loadGameData();
   const level = getLevel(g.xp);
   let html = `
     <html><head><meta charset="utf-8">
-    <title>Mi Diario Escolar - ${state.currentUser.name}</title>
+    <title>${t('pdf_title')} - ${state.currentUser.name}</title>
     <style>
       body { font-family: 'Segoe UI', sans-serif; padding: 30px; color: #333; max-width: 800px; margin: 0 auto; }
       h1 { color: #6c5ce7; border-bottom: 3px solid #6c5ce7; padding-bottom: 10px; }
@@ -2939,19 +2964,19 @@ function exportPDF() {
       .badge { background: #f0f0f0; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; }
       @media print { body { padding: 15px; } }
     </style></head><body>
-    <h1>📚 Mi Diario Escolar</h1>
+    <h1>📚 ${t('pdf_title')}</h1>
     <div class="header">
-      <div><strong>Estudiante:</strong> ${escapeHtml(state.currentUser.name)}${state.currentUser.age ? ' · ' + state.currentUser.age + ' años' : ''}</div>
-      <div><strong>Nivel:</strong> ${level.emoji} ${level.name} · ${g.xp} XP · 🔥 ${g.streak} días</div>
+      <div><strong>${t('pdf_student')}</strong> ${escapeHtml(state.currentUser.name)}${state.currentUser.age ? ' · ' + state.currentUser.age : ''}</div>
+      <div><strong>${t('pdf_level')}</strong> ${level.emoji} ${level.name} · ${g.xp} XP · 🔥 ${g.streak} ${t('days')}</div>
     </div>
     <div class="stats">`;
 
   let totalEntries = 0;
   state.subjects.forEach(s => { totalEntries += (state.entries[s.id] || []).length; });
-  html += `<div class="stat"><div class="stat-num">${totalEntries}</div><div class="stat-label">Entradas</div></div>`;
-  html += `<div class="stat"><div class="stat-num">${state.subjects.length}</div><div class="stat-label">Materias</div></div>`;
-  html += `<div class="stat"><div class="stat-num">${g.streak}</div><div class="stat-label">Racha (días)</div></div>`;
-  html += `<div class="stat"><div class="stat-num">${g.badges.length}</div><div class="stat-label">Insignias</div></div>`;
+  html += `<div class="stat"><div class="stat-num">${totalEntries}</div><div class="stat-label">${t('pdf_entries')}</div></div>`;
+  html += `<div class="stat"><div class="stat-num">${state.subjects.length}</div><div class="stat-label">${t('pdf_subjects')}</div></div>`;
+  html += `<div class="stat"><div class="stat-num">${g.streak}</div><div class="stat-label">${t('pdf_streak')}</div></div>`;
+  html += `<div class="stat"><div class="stat-num">${g.badges.length}</div><div class="stat-label">${t('pdf_badges')}</div></div>`;
   html += `</div>`;
 
   if (g.badges.length > 0) {
@@ -2969,7 +2994,7 @@ function exportPDF() {
     });
   });
 
-  html += `<div class="footer">Generado el ${new Date().toLocaleDateString('es')} · Mi Diario Escolar + IA</div>`;
+  html += `<div class="footer">${t('pdf_gen')} ${new Date().toLocaleDateString(window._dateLang || 'es')} · ${t('pdf_title')} + IA</div>`;
   html += `</body></html>`;
 
   const win = window.open('', '_blank');
@@ -2977,7 +3002,7 @@ function exportPDF() {
   win.document.close();
   setTimeout(() => { win.print(); }, 500);
   SFX.click();
-  showToast('📄 PDF listo — usa Ctrl+P para guardar');
+  showToast(t('toast_pdf_ready'));
 }
 
 // =============================================
@@ -3008,7 +3033,7 @@ function renderCalendar() {
     const dateStr = d.toISOString().split('T')[0];
     const count = allDates[dateStr] || 0;
     const level = count === 0 ? 0 : count <= 1 ? 1 : count <= 3 ? 2 : 3;
-    const title = `${dateStr}: ${count} entrada${count !== 1 ? 's' : ''}`;
+    const title = `${dateStr}: ${count} ${count !== 1 ? t('cal_entries') : t('cal_entry')}`;
     html += `<div class="cal-day cal-lv${level}" title="${title}"></div>`;
   }
 
@@ -3019,14 +3044,14 @@ function renderCalendar() {
   const totalE = Object.values(allDates).reduce((a, b) => a + b, 0);
   document.getElementById('calendar-legend').innerHTML = `
     <div class="cal-legend">
-      <span style="color:var(--dark-text2);font-size:0.75rem;">${totalDays} días activos · ${totalE} entradas en ${weeks} semanas</span>
+      <span style="color:var(--dark-text2);font-size:0.75rem;">${totalDays} ${t('cal_active_days')} · ${t('cal_in_weeks', { n: weeks })}</span>
       <div class="cal-legend-scale">
-        <span style="font-size:0.65rem;color:var(--dark-text2)">Menos</span>
+        <span style="font-size:0.65rem;color:var(--dark-text2)">${t('cal_less')}</span>
         <div class="cal-day cal-lv0" style="width:12px;height:12px;"></div>
         <div class="cal-day cal-lv1" style="width:12px;height:12px;"></div>
         <div class="cal-day cal-lv2" style="width:12px;height:12px;"></div>
         <div class="cal-day cal-lv3" style="width:12px;height:12px;"></div>
-        <span style="font-size:0.65rem;color:var(--dark-text2)">Más</span>
+        <span style="font-size:0.65rem;color:var(--dark-text2)">${t('cal_more')}</span>
       </div>
     </div>
   `;
