@@ -296,6 +296,8 @@ function render() {
   renderHeader();
   renderSubjectsGrid();
   renderAddSubjectButton();
+  renderCalendar();
+  updateGameUI();
   if (state.currentSubject) showSubjectView(state.currentSubject);
 }
 
@@ -2581,6 +2583,7 @@ function exCheckAnswer(qi) {
   const fb = document.getElementById(`ex-fb-${qi}`);
   fb.classList.add('show', isCorrect ? 'correct-fb' : 'wrong-fb');
   fb.textContent = isCorrect ? '🎉 ¡Correcto!' : '😕 Incorrecto';
+  if (isCorrect) SFX.correct(); else SFX.wrong();
 
   const btn = document.getElementById(`ex-check-${qi}`);
   btn.disabled = true;
@@ -2864,4 +2867,167 @@ function renderParentDashboard() {
     });
   }
   document.getElementById('parents-exercises').innerHTML = exHTML || '<p style="color:var(--dark-text2)">Sin ejercicios realizados aún</p>';
+}
+
+// =============================================
+//  SONIDOS — Efectos de audio
+// =============================================
+const SFX = {
+  xp: () => playTone([523, 659, 784], 0.12, 0.15),
+  badge: () => playTone([523, 659, 784, 1047], 0.15, 0.2),
+  correct: () => playTone([523, 784], 0.1, 0.12),
+  wrong: () => playTone([330, 262], 0.12, 0.15),
+  click: () => playTone([800], 0.05, 0.08),
+  send: () => playTone([440, 587], 0.06, 0.08),
+};
+
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freqs, dur, vol) {
+  try {
+    const ctx = getAudioCtx();
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      gain.gain.value = vol || 0.1;
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (i + 1) * dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * dur * 0.7);
+      osc.stop(ctx.currentTime + (i + 1) * dur + 0.1);
+    });
+  } catch {}
+}
+
+// Hook sounds into existing functions
+const _origShowXP = showXPToast;
+showXPToast = function(a, r) { SFX.xp(); _origShowXP(a, r); };
+const _origShowBadge = showBadgeToast;
+showBadgeToast = function(b) { SFX.badge(); _origShowBadge(b); };
+
+// =============================================
+//  EXPORTAR PDF
+// =============================================
+function exportPDF() {
+  if (!state.currentUser) { showToast('⚠️ Inicia sesión primero'); return; }
+  const g = loadGameData();
+  const level = getLevel(g.xp);
+  let html = `
+    <html><head><meta charset="utf-8">
+    <title>Mi Diario Escolar - ${state.currentUser.name}</title>
+    <style>
+      body { font-family: 'Segoe UI', sans-serif; padding: 30px; color: #333; max-width: 800px; margin: 0 auto; }
+      h1 { color: #6c5ce7; border-bottom: 3px solid #6c5ce7; padding-bottom: 10px; }
+      h2 { color: #4834d4; margin-top: 30px; }
+      .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+      .stats { display: flex; gap: 20px; flex-wrap: wrap; margin: 15px 0; }
+      .stat { background: #f8f9fa; padding: 12px 20px; border-radius: 10px; text-align: center; }
+      .stat-num { font-size: 1.5rem; font-weight: 800; color: #6c5ce7; }
+      .stat-label { font-size: 0.8rem; color: #666; }
+      .entry { background: #f8f9fa; border-left: 4px solid #6c5ce7; padding: 12px 16px; margin: 8px 0; border-radius: 0 8px 8px 0; }
+      .entry-date { font-size: 0.8rem; color: #888; }
+      .entry-text { margin-top: 4px; }
+      .subject-title { font-size: 1.1rem; margin-top: 20px; padding: 8px 12px; background: #6c5ce7; color: white; border-radius: 8px; }
+      .footer { margin-top: 40px; text-align: center; color: #aaa; font-size: 0.8rem; }
+      .badges { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+      .badge { background: #f0f0f0; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; }
+      @media print { body { padding: 15px; } }
+    </style></head><body>
+    <h1>📚 Mi Diario Escolar</h1>
+    <div class="header">
+      <div><strong>Estudiante:</strong> ${escapeHtml(state.currentUser.name)}${state.currentUser.age ? ' · ' + state.currentUser.age + ' años' : ''}</div>
+      <div><strong>Nivel:</strong> ${level.emoji} ${level.name} · ${g.xp} XP · 🔥 ${g.streak} días</div>
+    </div>
+    <div class="stats">`;
+
+  let totalEntries = 0;
+  state.subjects.forEach(s => { totalEntries += (state.entries[s.id] || []).length; });
+  html += `<div class="stat"><div class="stat-num">${totalEntries}</div><div class="stat-label">Entradas</div></div>`;
+  html += `<div class="stat"><div class="stat-num">${state.subjects.length}</div><div class="stat-label">Materias</div></div>`;
+  html += `<div class="stat"><div class="stat-num">${g.streak}</div><div class="stat-label">Racha (días)</div></div>`;
+  html += `<div class="stat"><div class="stat-num">${g.badges.length}</div><div class="stat-label">Insignias</div></div>`;
+  html += `</div>`;
+
+  if (g.badges.length > 0) {
+    html += `<div class="badges">`;
+    g.badges.forEach(id => { const b = BADGES.find(x => x.id === id); if (b) html += `<span class="badge">${b.emoji} ${b.name}</span>`; });
+    html += `</div>`;
+  }
+
+  state.subjects.forEach(sub => {
+    const entries = (state.entries[sub.id] || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (entries.length === 0) return;
+    html += `<div class="subject-title">${sub.emoji} ${sub.name} (${entries.length} entradas)</div>`;
+    entries.forEach(e => {
+      html += `<div class="entry"><div class="entry-date">📅 ${e.date}</div><div class="entry-text">${escapeHtml(e.text)}</div></div>`;
+    });
+  });
+
+  html += `<div class="footer">Generado el ${new Date().toLocaleDateString('es')} · Mi Diario Escolar + IA</div>`;
+  html += `</body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => { win.print(); }, 500);
+  SFX.click();
+  showToast('📄 PDF listo — usa Ctrl+P para guardar');
+}
+
+// =============================================
+//  CALENDARIO VISUAL (tipo GitHub)
+// =============================================
+function renderCalendar() {
+  const container = document.getElementById('calendar-grid');
+  const section = document.getElementById('calendar-section');
+  if (!container || !section) return;
+  if (!state.currentUser) { section.classList.add('hidden'); return; }
+  section.classList.remove('hidden');
+
+  const allDates = {};
+  state.subjects.forEach(sub => {
+    (state.entries[sub.id] || []).forEach(e => {
+      allDates[e.date] = (allDates[e.date] || 0) + 1;
+    });
+  });
+
+  const today = new Date();
+  const weeks = 20;
+  const days = weeks * 7;
+  let html = '<div class="cal-grid">';
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const count = allDates[dateStr] || 0;
+    const level = count === 0 ? 0 : count <= 1 ? 1 : count <= 3 ? 2 : 3;
+    const title = `${dateStr}: ${count} entrada${count !== 1 ? 's' : ''}`;
+    html += `<div class="cal-day cal-lv${level}" title="${title}"></div>`;
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+
+  const totalDays = Object.keys(allDates).length;
+  const totalE = Object.values(allDates).reduce((a, b) => a + b, 0);
+  document.getElementById('calendar-legend').innerHTML = `
+    <div class="cal-legend">
+      <span style="color:var(--dark-text2);font-size:0.75rem;">${totalDays} días activos · ${totalE} entradas en ${weeks} semanas</span>
+      <div class="cal-legend-scale">
+        <span style="font-size:0.65rem;color:var(--dark-text2)">Menos</span>
+        <div class="cal-day cal-lv0" style="width:12px;height:12px;"></div>
+        <div class="cal-day cal-lv1" style="width:12px;height:12px;"></div>
+        <div class="cal-day cal-lv2" style="width:12px;height:12px;"></div>
+        <div class="cal-day cal-lv3" style="width:12px;height:12px;"></div>
+        <span style="font-size:0.65rem;color:var(--dark-text2)">Más</span>
+      </div>
+    </div>
+  `;
 }

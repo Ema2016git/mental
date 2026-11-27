@@ -144,6 +144,14 @@
       <div id="add-subject-area" class="hidden">
         <button class="btn btn-add-subject" onclick="openSubjectModal()">➕ Agregar Nueva Materia</button>
         <button class="btn btn-share-parents" onclick="generateParentCode()">👨‍👩‍👧 Compartir con padres</button>
+        <button class="btn btn-export-pdf" onclick="exportPDF()">📄 Exportar PDF</button>
+      </div>
+
+      <!-- Calendario visual -->
+      <div id="calendar-section" class="hidden">
+        <h3>📅 Mi Actividad</h3>
+        <div id="calendar-grid"></div>
+        <div id="calendar-legend"></div>
       </div>
       <section id="subject-view" class="hidden">
         <button class="btn btn-back" onclick="goBack()">← Volver a mis materias</button>

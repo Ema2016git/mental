@@ -1372,6 +1372,49 @@ body {
 /* Entry actions */
 .entry-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
 
+/* =============================================
+   EXPORTAR PDF
+   ============================================= */
+.btn-export-pdf {
+  background: linear-gradient(135deg, #e17055, #d63031);
+  color: #fff; border: none; padding: 12px 20px; border-radius: 12px;
+  font-size: 0.9rem; font-weight: 600; cursor: pointer;
+  margin-left: 10px; transition: all 0.3s;
+}
+.btn-export-pdf:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(214,48,49,0.4); }
+
+/* =============================================
+   CALENDARIO VISUAL
+   ============================================= */
+#calendar-section {
+  margin: 16px 20px; padding: 16px; background: var(--dark-card);
+  border-radius: 14px; box-shadow: var(--shadow);
+}
+#calendar-section h3 { margin: 0 0 12px; font-size: 0.95rem; color: var(--dark-text); }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(20, 1fr);
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 1fr);
+  gap: 3px;
+}
+.cal-day {
+  width: 100%; aspect-ratio: 1; border-radius: 3px;
+  transition: all 0.2s;
+}
+.cal-day:hover { transform: scale(1.4); z-index: 2; }
+.cal-lv0 { background: rgba(255,255,255,0.06); }
+.cal-lv1 { background: rgba(108,92,231,0.3); }
+.cal-lv2 { background: rgba(108,92,231,0.6); }
+.cal-lv3 { background: #6c5ce7; box-shadow: 0 0 6px rgba(108,92,231,0.4); }
+
+.cal-legend {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 8px; flex-wrap: wrap; gap: 6px;
+}
+.cal-legend-scale { display: flex; align-items: center; gap: 3px; }
+
 @media (max-width: 600px) {
   .game-bar { font-size: 0.7rem; gap: 6px; padding: 5px 10px; }
   .game-xp-bar { min-width: 50px; }
