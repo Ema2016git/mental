@@ -1995,47 +1995,30 @@ async function graphSend(text) {
   }
 
   const diaryData = buildGraphDiaryData();
-  const systemPrompt = `Eres un asistente que crea gráficos y dibuja figuras geométricas. Responde SIEMPRE en español.
-Responde con UN bloque JSON entre [CHART] y [/CHART].
+  const systemPrompt = `Eres un asistente educativo. Responde SIEMPRE en español.
 
-HAY DOS MODOS:
+IMPORTANTE: Las figuras geométricas (triángulo, cuadrado, etc.) ya se dibujan automáticamente. 
+Tú SOLO generas gráficos de DATOS (barras, circular, línea).
 
-=== MODO 1: GRÁFICOS DE DATOS ===
-Para gráficos de barras, circular o línea:
-[CHART]{"type":"bar|pie|line","title":"Título","labels":["A","B","C"],"values":[10,20,30]}[/CHART]
+Para generar un gráfico, responde con UN bloque JSON entre [CHART] y [/CHART]:
+[CHART]{"type":"bar","title":"Título","labels":["A","B","C"],"values":[10,20,30]}[/CHART]
 
-=== MODO 2: FIGURAS GEOMÉTRICAS ===
-Cuando el usuario pida dibujar una FIGURA (triángulo, rectángulo, cuadrado, círculo, pentágono, hexágono):
-[CHART]{"type":"shape","shape":"nombre_figura","title":"Título","labels":["Lado a","Lado b","Lado c"],"values":[3,4,5],"rightAngle":true,"color":"#00ffc8"}[/CHART]
+Tipos: "bar" (barras), "pie" (circular), "line" (línea temporal)
 
-Figuras disponibles:
-- "triangulo rectangulo" → rightAngle: true, labels para catetos e hipotenusa, values con sus medidas
-- "triangulo equilatero" → rightAngle: false, 3 lados iguales
-- "triangulo" → cualquier triángulo, rightAngle: false
-- "rectangulo" → labels: ["Base","Altura"], values: [base, altura]
-- "cuadrado" → labels: ["Lado"], values: [lado]
-- "circulo" → labels: ["Radio"], values: [radio_numerico]
-- "pentagono" → labels: ["Lado"], values: [lado]
-- "hexagono" → labels: ["Lado"], values: [lado]
-
-EJEMPLO triángulo rectángulo:
-[CHART]{"type":"shape","shape":"triangulo rectangulo","title":"Triángulo Rectángulo","labels":["Cateto a","Hipotenusa","Cateto b"],"values":[3,5,4],"rightAngle":true}[/CHART]
-
-EJEMPLO círculo:
-[CHART]{"type":"shape","shape":"circulo","title":"Círculo","labels":["Radio"],"values":[5]}[/CHART]
-
-IMPORTANTE: Si el usuario pide una FIGURA GEOMÉTRICA (triángulo, cuadrado, rectángulo, círculo, etc.), usa type:"shape". NO uses type:"bar" para figuras geométricas.
-Si pide un gráfico de datos, usa type:"bar", "pie" o "line".
+REGLAS ESTRICTAS:
+1. Los valores DEBEN ser números REALES y VERIFICABLES. NO inventes datos.
+2. Si el usuario pregunta algo que NO está en su diario, NO inventes — dile que primero escriba en su diario.
+3. labels y values DEBEN tener la misma cantidad de elementos.
+4. Cada valor debe ser DIFERENTE (no pongas todos iguales).
+5. Para comparaciones (ej: Tierra vs Sol), usa datos REALES verificables.
+6. Después del bloque JSON, escribe una breve explicación.
+7. Si NO puedes generar datos correctos, NO generes el bloque [CHART] y solo responde con texto.
 
 Datos del diario del estudiante:
 ${diaryData}
 
-Reglas:
-- SIEMPRE incluye el bloque [CHART]...[/CHART]
-- Para figuras: pon medidas numéricas correctas y verifica que sean geométricamente válidas (ej: en triángulo rectángulo, hipotenusa² = cateto_a² + cateto_b² por Pitágoras)
-- Para gráficos: usa datos del diario cuando corresponda
-- Después del bloque, escribe una breve explicación educativa
-- Los valores DEBEN ser números`;
+Ejemplo correcto para "compara tamaños de planetas":
+[CHART]{"type":"bar","title":"Diámetro de Planetas (km)","labels":["Mercurio","Tierra","Júpiter"],"values":[4879,12742,139820]}[/CHART]`;
 
   graphStreaming = true;
   const bubbleEl = graphAppendMsg('ai', '<div class="ai-typing"><span></span><span></span><span></span></div>');
