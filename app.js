@@ -38,6 +38,173 @@ let aiIsStreaming = false;
 let aiCurrentController = null;
 
 // =============================================
+//  GAMIFICACIÓN
+// =============================================
+const LEVELS = [
+  { name: 'Novato', xp: 0, emoji: '🌱' },
+  { name: 'Aprendiz', xp: 50, emoji: '📗' },
+  { name: 'Estudioso', xp: 150, emoji: '📘' },
+  { name: 'Dedicado', xp: 300, emoji: '⭐' },
+  { name: 'Experto', xp: 500, emoji: '🏅' },
+  { name: 'Maestro', xp: 800, emoji: '🏆' },
+  { name: 'Genio', xp: 1200, emoji: '🧠' },
+  { name: 'Leyenda', xp: 2000, emoji: '👑' },
+];
+const BADGES = [
+  { id: 'first_entry', name: 'Primera Entrada', emoji: '✍️', desc: 'Escribe tu primera entrada', check: g => g.totalEntries >= 1 },
+  { id: 'five_entries', name: 'Escritor', emoji: '📝', desc: 'Escribe 5 entradas', check: g => g.totalEntries >= 5 },
+  { id: 'twenty_entries', name: 'Autor', emoji: '📚', desc: 'Escribe 20 entradas', check: g => g.totalEntries >= 20 },
+  { id: 'streak_3', name: 'Racha de 3', emoji: '🔥', desc: '3 días seguidos escribiendo', check: g => g.streak >= 3 },
+  { id: 'streak_7', name: 'Semana Perfecta', emoji: '💪', desc: '7 días seguidos escribiendo', check: g => g.streak >= 7 },
+  { id: 'streak_30', name: 'Mes Imparable', emoji: '🚀', desc: '30 días seguidos escribiendo', check: g => g.streak >= 30 },
+  { id: 'quiz_ace', name: 'As del Quiz', emoji: '💯', desc: 'Saca 100% en un ejercicio', check: g => g.perfectQuiz },
+  { id: 'five_subjects', name: 'Multidisciplina', emoji: '🌈', desc: 'Escribe en 5 materias distintas', check: g => g.activeSubjects >= 5 },
+  { id: 'ai_chat', name: 'Amigo de IA', emoji: '🤖', desc: 'Envía 10 mensajes a la IA', check: g => g.aiMessages >= 10 },
+  { id: 'shape_draw', name: 'Artista Geométrico', emoji: '📐', desc: 'Dibuja 5 figuras', check: g => g.shapesDrawn >= 5 },
+];
+
+function loadGameData() {
+  const d = JSON.parse(localStorage.getItem('game_data') || '{}');
+  return {
+    xp: d.xp || 0,
+    streak: d.streak || 0,
+    lastActiveDate: d.lastActiveDate || '',
+    totalEntries: d.totalEntries || 0,
+    badges: d.badges || [],
+    perfectQuiz: d.perfectQuiz || false,
+    activeSubjects: d.activeSubjects || 0,
+    aiMessages: d.aiMessages || 0,
+    shapesDrawn: d.shapesDrawn || 0,
+  };
+}
+function saveGameData(g) { localStorage.setItem('game_data', JSON.stringify(g)); }
+
+function getLevel(xp) {
+  let lv = LEVELS[0];
+  for (const l of LEVELS) { if (xp >= l.xp) lv = l; }
+  return lv;
+}
+function getNextLevel(xp) {
+  for (const l of LEVELS) { if (xp < l.xp) return l; }
+  return null;
+}
+
+function addXP(amount, reason) {
+  const g = loadGameData();
+  g.xp += amount;
+  saveGameData(g);
+  showXPToast(amount, reason);
+  checkBadges();
+  updateGameUI();
+}
+
+function updateStreak() {
+  const g = loadGameData();
+  const today = new Date().toISOString().split('T')[0];
+  if (g.lastActiveDate === today) return;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  if (g.lastActiveDate === yesterday) {
+    g.streak++;
+  } else if (g.lastActiveDate !== today) {
+    g.streak = 1;
+  }
+  g.lastActiveDate = today;
+  saveGameData(g);
+  checkBadges();
+}
+
+function checkBadges() {
+  const g = loadGameData();
+  let newBadge = false;
+  // Recalculate stats
+  let total = 0, subjects = new Set();
+  state.subjects.forEach(s => {
+    const entries = (state.entries[s.id] || []);
+    total += entries.length;
+    if (entries.length > 0) subjects.add(s.id);
+  });
+  g.totalEntries = total;
+  g.activeSubjects = subjects.size;
+  BADGES.forEach(b => {
+    if (!g.badges.includes(b.id) && b.check(g)) {
+      g.badges.push(b.id);
+      newBadge = true;
+      showBadgeToast(b);
+    }
+  });
+  saveGameData(g);
+  if (newBadge) updateGameUI();
+}
+
+function showXPToast(amount, reason) {
+  const toast = document.createElement('div');
+  toast.className = 'xp-toast';
+  toast.innerHTML = `<span class="xp-amount">+${amount} XP</span> <span class="xp-reason">${reason}</span>`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, 2500);
+}
+
+function showBadgeToast(badge) {
+  const toast = document.createElement('div');
+  toast.className = 'badge-toast';
+  toast.innerHTML = `<div class="badge-toast-icon">${badge.emoji}</div><div><strong>¡Nueva insignia!</strong><br>${badge.name}</div>`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, 3500);
+}
+
+function updateGameUI() {
+  const g = loadGameData();
+  const level = getLevel(g.xp);
+  const next = getNextLevel(g.xp);
+  const bar = document.getElementById('user-bar');
+  if (!bar || !state.currentUser) return;
+  const pct = next ? Math.min(100, ((g.xp - level.xp) / (next.xp - level.xp)) * 100) : 100;
+  const streakText = g.streak > 0 ? `🔥 ${g.streak} día${g.streak > 1 ? 's' : ''}` : '';
+  bar.innerHTML = `
+    <div class="game-bar">
+      <span class="game-level">${level.emoji} ${level.name}</span>
+      <div class="game-xp-bar"><div class="game-xp-fill" style="width:${pct}%"></div></div>
+      <span class="game-xp-text">${g.xp} XP</span>
+      <span class="game-streak">${streakText}</span>
+      <button class="game-badges-btn" onclick="showBadgesModal()" title="Ver insignias">🏅 ${g.badges.length}/${BADGES.length}</button>
+    </div>
+  `;
+}
+
+function showBadgesModal() {
+  const g = loadGameData();
+  const existing = document.getElementById('badges-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'badges-modal';
+  modal.className = 'modal';
+  modal.style.cssText = 'display:flex;align-items:center;justify-content:center;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);';
+  const level = getLevel(g.xp);
+  const next = getNextLevel(g.xp);
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:460px;max-height:80vh;overflow-y:auto;">
+      <button class="modal-close" onclick="document.getElementById('badges-modal').remove()">&times;</button>
+      <h2 style="text-align:center;">${level.emoji} ${level.name}</h2>
+      <p style="text-align:center;color:var(--dark-text2);">${g.xp} XP · Racha: 🔥 ${g.streak} días${next ? ` · Siguiente: ${next.emoji} ${next.name} (${next.xp} XP)` : ' · ¡Nivel máximo!'}</p>
+      <h3 style="margin-top:16px;">🏅 Insignias (${g.badges.length}/${BADGES.length})</h3>
+      <div class="badges-grid">
+        ${BADGES.map(b => {
+          const unlocked = g.badges.includes(b.id);
+          return `<div class="badge-card ${unlocked ? 'unlocked' : 'locked'}">
+            <span class="badge-icon">${unlocked ? b.emoji : '🔒'}</span>
+            <strong>${b.name}</strong>
+            <small>${b.desc}</small>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// =============================================
 //  INICIALIZACIÓN
 // =============================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -47,6 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setDefaultDate();
   aiCheckStatus();
   aiLoadModels();
+  updateGameUI();
+  updateStreak();
 });
 
 // =============================================
@@ -247,6 +416,8 @@ function handleAddEntry(e) {
   document.getElementById('entry-text').value = '';
   showSubjectView(state.currentSubject);
   showToast('✅ ¡Aprendizaje guardado!');
+  addXP(10, 'Entrada en diario');
+  updateStreak();
 }
 
 function addEntryFromAI(subjectId, text, date) {
@@ -257,6 +428,8 @@ function addEntryFromAI(subjectId, text, date) {
   }
   state.entries[subjectId].push({ date, text });
   saveState();
+  addXP(10, 'Entrada con IA');
+  updateStreak();
 }
 
 function deleteEntry(subjectId, sortedIdx) {
@@ -720,6 +893,8 @@ async function aiSendMessage() {
 
   aiMessages.push({ role: 'user', content: text });
   aiAppendBubble('user', text);
+  const g = loadGameData(); g.aiMessages = (g.aiMessages || 0) + 1; saveGameData(g);
+  if (aiMessages.length <= 2) addXP(5, 'Chat con IA');
   input.value = '';
   input.style.height = 'auto';
 
@@ -1963,6 +2138,8 @@ async function graphSend(text) {
   if (shapeData && shapeData.type === 'shape') {
     shapeData = extractShapeValues(text, shapeData);
     drawShape(shapeData);
+    const gd = loadGameData(); gd.shapesDrawn = (gd.shapesDrawn || 0) + 1; saveGameData(gd);
+    addXP(5, 'Figura geométrica');
 
     // Now ask AI for educational explanation only
     graphStreaming = true;
@@ -2451,6 +2628,10 @@ function showResults() {
 
   exState.history.unshift({ date: getTodayStr(), score: exState.score, total: exState.total, pct });
   renderHistory();
+  // Gamification
+  addXP(Math.round(pct / 10) + 5, 'Ejercicio completado');
+  if (pct === 100) { const g = loadGameData(); g.perfectQuiz = true; saveGameData(g); }
+  checkBadges();
 }
 
 function exRetry() {

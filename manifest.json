@@ -1,0 +1,27 @@
+{
+  "name": "Mi Diario Escolar + IA",
+  "short_name": "Mi Diario",
+  "description": "App educativa con diario escolar, IA, ejercicios y gráficos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0f1a",
+  "theme_color": "#6c5ce7",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "es",
+  "dir": "ltr"
+}
